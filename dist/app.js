@@ -15,11 +15,11 @@
   const MOVE_LENGTH = 0.94;
   const colors = {
     px: "#ef7137",
-    nx: "#f5f1e8",
+    nx: "#d94338",
     py: "#f4ad34",
-    ny: "#244f99",
-    pz: "#d94338",
-    nz: "#2f6a54",
+    ny: "#f5f1e8",
+    pz: "#2f6a54",
+    nz: "#244f99",
     core: "#25231f",
     edge: "#a49e94",
     paper: "#fbf8f1",
@@ -46,7 +46,7 @@
 
   let cssWidth = 1280;
   let cssHeight = 720;
-  let playing = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let playing = true;
   let elapsed = 0;
   let lastTimestamp = null;
   let draggingTimeline = false;
@@ -280,21 +280,51 @@
     });
   }
 
-  const graphColors = [
-    colors.pz,
-    colors.py,
-    colors.px,
-    colors.nx,
-    colors.nz,
-    colors.ny,
-  ];
+  const graphFaceAngles = {
+    nx: -Math.PI * 5 / 6,
+    py: -Math.PI / 2,
+    nz: -Math.PI / 6,
+    px: Math.PI / 6,
+    ny: Math.PI / 2,
+    pz: Math.PI * 5 / 6,
+  };
 
-  function seededNoise(index, salt) {
-    const value = Math.sin(index * 91.73 + salt * 47.19) * 43758.5453;
-    return value - Math.floor(value);
+  const graphFaceColors = {
+    nx: colors.nx,
+    py: colors.py,
+    nz: colors.nz,
+    px: colors.px,
+    ny: colors.ny,
+    pz: colors.pz,
+  };
+
+  function graphClusterForNormal(normal, centerX, centerY, radius) {
+    const weights = {
+      px: Math.max(0, normal[0]),
+      nx: Math.max(0, -normal[0]),
+      py: Math.max(0, normal[1]),
+      ny: Math.max(0, -normal[1]),
+      pz: Math.max(0, normal[2]),
+      nz: Math.max(0, -normal[2]),
+    };
+    const weightTotal = Object.values(weights).reduce((sum, weight) => sum + weight, 0) || 1;
+    let x = 0;
+    let y = 0;
+
+    Object.entries(weights).forEach(([face, weight]) => {
+      const angle = graphFaceAngles[face];
+      x += Math.cos(angle) * radius * 0.58 * weight / weightTotal;
+      y += Math.sin(angle) * radius * 0.52 * weight / weightTotal;
+    });
+
+    return [centerX + x, centerY + y];
   }
 
-  function drawGraph(progress, centerX, centerY, radius) {
+  function colorKeyForSticker(color) {
+    return Object.keys(graphFaceColors).find((key) => graphFaceColors[key] === color);
+  }
+
+  function drawGraph(state, centerX, centerY, radius) {
     context.save();
     context.lineWidth = Math.max(1, radius * 0.008);
     context.strokeStyle = "rgba(24, 23, 20, 0.38)";
@@ -318,34 +348,43 @@
       context.stroke();
     }
 
-    const easedProgress = easeInOut(progress);
     const nodeRadius = Math.max(4, radius * 0.036);
-    for (let index = 0; index < 54; index += 1) {
-      const colorIndex = Math.floor(index / 9);
-      const indexInColor = index % 9;
-      const initialAngle = seededNoise(index, 2) * Math.PI * 2;
-      const initialRadius = radius * (0.16 + seededNoise(index, 5) * 0.61);
-      const initialX = centerX + Math.cos(initialAngle) * initialRadius;
-      const initialY = centerY + Math.sin(initialAngle) * initialRadius * 0.86;
+    const axisIndex = state.activeMove ? { x: 0, y: 1, z: 2 }[state.activeMove[0]] : -1;
+    const activeAngle = state.activeMove
+      ? state.activeMove[2] * Math.PI * 0.5 * state.moveFraction
+      : 0;
+    const nodes = [];
 
-      const clusterAngle = -Math.PI * 0.5 + (Math.PI * 2 * colorIndex) / 6;
-      const clusterX = centerX + Math.cos(clusterAngle) * radius * 0.58;
-      const clusterY = centerY + Math.sin(clusterAngle) * radius * 0.52;
-      const localAngle = (Math.PI * 2 * indexInColor) / 9;
-      const localRadius = radius * (0.075 + (indexInColor % 3) * 0.025);
-      const targetX = clusterX + Math.cos(localAngle) * localRadius;
-      const targetY = clusterY + Math.sin(localAngle) * localRadius;
+    state.cube.forEach((cubie) => {
+      const isActive =
+        state.activeMove && Math.round(cubie.position[axisIndex]) === state.activeMove[1];
 
-      const x = initialX + (targetX - initialX) * easedProgress;
-      const y = initialY + (targetY - initialY) * easedProgress;
+      cubie.faces.forEach((face) => {
+        if (face.stickerId === null) return;
+        const normal = isActive
+          ? rotateVector(face.direction, state.activeMove[0], activeAngle)
+          : face.direction;
+        const [clusterX, clusterY] = graphClusterForNormal(normal, centerX, centerY, radius);
+        const indexInColor = face.stickerId % 9;
+        const localAngle = (Math.PI * 2 * indexInColor) / 9;
+        const localRadius = radius * (0.06 + (indexInColor % 3) * 0.022);
+        nodes.push({
+          x: clusterX + Math.cos(localAngle) * localRadius,
+          y: clusterY + Math.sin(localAngle) * localRadius,
+          color: graphFaceColors[colorKeyForSticker(face.color)],
+        });
+      });
+    });
+
+    nodes.forEach(({ x, y, color }) => {
       context.beginPath();
       context.arc(x, y, nodeRadius, 0, Math.PI * 2);
-      context.fillStyle = graphColors[colorIndex];
+      context.fillStyle = color;
       context.fill();
       context.strokeStyle = colors.ink;
       context.lineWidth = Math.max(1.1, radius * 0.009);
       context.stroke();
-    }
+    });
     context.restore();
   }
 
@@ -371,7 +410,7 @@
 
     drawDivider();
     drawCube(state, cssWidth * 0.25, verticalCenter, cubeScale);
-    drawGraph(state.progress, cssWidth * 0.75, verticalCenter, graphRadius);
+    drawGraph(state, cssWidth * 0.75, verticalCenter, graphRadius);
 
     const progressValue = Math.round((time / DURATION) * 1000);
     timeline.value = String(progressValue);
@@ -409,10 +448,7 @@
       if (lastTimestamp !== null) {
         elapsed += (timestamp - lastTimestamp) / 1000;
       }
-      if (elapsed >= DURATION) {
-        elapsed = DURATION;
-        setPlaying(false);
-      }
+      if (elapsed >= DURATION) elapsed %= DURATION;
     }
     lastTimestamp = timestamp;
     drawFrame(elapsed);
