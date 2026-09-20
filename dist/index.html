@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f2efe8" />
+    <meta
+      name="description"
+      content="关于系统、图与学习的研究笔记，以及一个可交互的魔方与图论动画。"
+    />
+    <title>Research Notes — 系统、图与学习</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+
+    <header class="site-header">
+      <a class="wordmark" href="#top" aria-label="Research Notes 首页">
+        <span class="wordmark-mark" aria-hidden="true"></span>
+        <span>Research / Notes</span>
+      </a>
+      <nav aria-label="主导航">
+        <a href="#animation">实验</a>
+        <a href="#notes">文章</a>
+        <a href="#about">关于</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Systems · Graphs · Learning</p>
+          <h1 id="hero-title">把复杂的系统，<br />画到足够清楚。</h1>
+          <p class="hero-deck">
+            关于计算、网络与机器学习的研究笔记。这里从一个魔方开始：每次局部转动，
+            都在右侧的状态图中留下同一步变化。
+          </p>
+        </div>
+
+        <div class="hero-index" aria-hidden="true">
+          <span>ISSUE</span>
+          <strong>01</strong>
+          <span>SEP · 2026</span>
+        </div>
+      </section>
+
+      <section class="experiment" id="animation" aria-labelledby="experiment-title">
+        <div class="section-kicker">
+          <span>Interactive study 01</span>
+          <span id="moveLabel">Move 00 / 11</span>
+        </div>
+
+        <div class="animation-shell">
+          <canvas
+            id="cubeCanvas"
+            width="1280"
+            height="720"
+            role="img"
+            aria-label="一个三阶魔方逐步复原，同时右侧图节点按颜色重新聚合的动画"
+          >
+            你的浏览器不支持 Canvas 动画。
+          </canvas>
+
+          <div class="animation-legend" aria-hidden="true">
+            <span>Rubik state</span>
+            <span>Graph state</span>
+          </div>
+        </div>
+
+        <div class="player" aria-label="动画播放控制">
+          <button class="player-button player-button-primary" id="playButton" type="button">
+            <span class="play-icon" aria-hidden="true"></span>
+            <span id="playText">暂停</span>
+          </button>
+          <label class="timeline-label" for="timeline">
+            <span class="sr-only">动画进度</span>
+            <input id="timeline" type="range" min="0" max="1000" value="0" />
+          </label>
+          <output id="timeOutput" for="timeline">00:00 / 00:13</output>
+          <button class="player-button" id="restartButton" type="button">重播</button>
+        </div>
+      </section>
+
+      <section class="notes" id="notes" aria-labelledby="notes-title">
+        <div class="notes-heading">
+          <p class="eyebrow">Selected writing</p>
+          <h2 id="notes-title">Notes</h2>
+          <p>共享正在形成的想法，而不只展示已经结束的答案。</p>
+        </div>
+
+        <div class="note-list">
+          <article class="note-row">
+            <p class="note-meta"><time datetime="2026-09-20">2026.09.20</time> · 8 min</p>
+            <div>
+              <h3>从状态空间看一只魔方</h3>
+              <p>把转动、约束和最短路径放进同一张图里。</p>
+            </div>
+            <span class="note-number" aria-hidden="true">01</span>
+          </article>
+
+          <article class="note-row">
+            <p class="note-meta"><time datetime="2026-08-28">2026.08.28</time> · 6 min</p>
+            <div>
+              <h3>系统为什么需要被画出来</h3>
+              <p>可视化不是装饰，而是一种检查推理的方法。</p>
+            </div>
+            <span class="note-number" aria-hidden="true">02</span>
+          </article>
+
+          <article class="note-row">
+            <p class="note-meta"><time datetime="2026-07-11">2026.07.11</time> · 11 min</p>
+            <div>
+              <h3>局部动作，整体秩序</h3>
+              <p>从置换群到分布式系统中的可组合操作。</p>
+            </div>
+            <span class="note-number" aria-hidden="true">03</span>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer id="about">
+      <p>Research Notes</p>
+      <p>关于系统、图与学习。</p>
+      <a href="#top">回到顶部 ↑</a>
+    </footer>
+  </body>
+</html>
