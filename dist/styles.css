@@ -217,58 +217,11 @@ footer a:focus-visible {
 
 .player {
   display: grid;
-  grid-template-columns: auto minmax(140px, 1fr) auto auto;
+  grid-template-columns: minmax(140px, 1fr) auto;
   align-items: center;
   gap: 18px;
   padding: 18px 0;
   border-bottom: 1px solid var(--line);
-}
-
-.player-button {
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid var(--ink);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.player-button:hover,
-.player-button:focus-visible {
-  background: var(--paper-deep);
-  outline: 3px solid transparent;
-}
-
-.player-button-primary {
-  min-width: 104px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: var(--ink);
-  color: var(--paper);
-}
-
-.player-button-primary:hover,
-.player-button-primary:focus-visible {
-  background: var(--accent-dark);
-}
-
-.play-icon {
-  width: 9px;
-  height: 12px;
-  border-left: 3px solid currentColor;
-  border-right: 3px solid currentColor;
-}
-
-.player-button[data-playing="false"] .play-icon {
-  width: 0;
-  height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-left: 10px solid currentColor;
-  border-right: 0;
 }
 
 .timeline-label {
@@ -447,15 +400,6 @@ footer p {
     padding-bottom: 64px;
   }
 
-  .player {
-    grid-template-columns: auto 1fr auto;
-  }
-
-  .timeline-label {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
   #timeOutput {
     justify-self: end;
   }
@@ -518,14 +462,6 @@ footer p {
 
   .player {
     gap: 10px;
-  }
-
-  .player-button {
-    padding-inline: 14px;
-  }
-
-  .player-button-primary {
-    min-width: 94px;
   }
 
   #timeOutput {

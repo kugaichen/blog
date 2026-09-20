@@ -3,9 +3,6 @@
 
   const canvas = document.querySelector("#cubeCanvas");
   const context = canvas.getContext("2d");
-  const playButton = document.querySelector("#playButton");
-  const playText = document.querySelector("#playText");
-  const restartButton = document.querySelector("#restartButton");
   const timeline = document.querySelector("#timeline");
   const timeOutput = document.querySelector("#timeOutput");
   const moveLabel = document.querySelector("#moveLabel");
@@ -46,7 +43,6 @@
 
   let cssWidth = 1280;
   let cssHeight = 720;
-  let playing = true;
   let elapsed = 0;
   let lastTimestamp = null;
   let draggingTimeline = false;
@@ -424,14 +420,6 @@
     return `00:${String(seconds).padStart(2, "0")}`;
   }
 
-  function setPlaying(nextPlaying) {
-    playing = nextPlaying;
-    playButton.dataset.playing = String(playing);
-    playText.textContent = playing ? "暂停" : "播放";
-    playButton.setAttribute("aria-label", playing ? "暂停动画" : "播放动画");
-    lastTimestamp = null;
-  }
-
   function resizeCanvas() {
     const bounds = canvas.getBoundingClientRect();
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -444,7 +432,7 @@
   }
 
   function tick(timestamp) {
-    if (playing && !draggingTimeline) {
+    if (!draggingTimeline) {
       if (lastTimestamp !== null) {
         elapsed += (timestamp - lastTimestamp) / 1000;
       }
@@ -454,17 +442,6 @@
     drawFrame(elapsed);
     window.requestAnimationFrame(tick);
   }
-
-  playButton.addEventListener("click", () => {
-    if (elapsed >= DURATION) elapsed = 0;
-    setPlaying(!playing);
-  });
-
-  restartButton.addEventListener("click", () => {
-    elapsed = 0;
-    setPlaying(true);
-    drawFrame(elapsed);
-  });
 
   timeline.addEventListener("pointerdown", () => {
     draggingTimeline = true;
@@ -486,7 +463,6 @@
 
   const resizeObserver = new ResizeObserver(resizeCanvas);
   resizeObserver.observe(canvas);
-  setPlaying(playing);
   resizeCanvas();
   window.requestAnimationFrame(tick);
 })();

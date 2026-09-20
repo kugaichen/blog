@@ -68,17 +68,12 @@
           </div>
         </div>
 
-        <div class="player" aria-label="动画播放控制">
-          <button class="player-button player-button-primary" id="playButton" type="button">
-            <span class="play-icon" aria-hidden="true"></span>
-            <span id="playText">暂停</span>
-          </button>
+        <div class="player" aria-label="动画进度">
           <label class="timeline-label" for="timeline">
             <span class="sr-only">动画进度</span>
             <input id="timeline" type="range" min="0" max="1000" value="0" />
           </label>
           <output id="timeOutput" for="timeline">00:00 / 00:13</output>
-          <button class="player-button" id="restartButton" type="button">重播</button>
         </div>
       </section>
 
