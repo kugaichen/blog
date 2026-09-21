@@ -1,0 +1,13 @@
+{
+  "name": "kugai-chen-research-notes",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-content.mjs",
+    "build:check": "node scripts/build-content.mjs --check",
+    "import:post": "node scripts/import-post.mjs"
+  },
+  "dependencies": {
+    "marked": "18.0.13"
+  }
+}

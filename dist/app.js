@@ -489,15 +489,6 @@
     context.restore();
   }
 
-  function drawDivider() {
-    context.strokeStyle = "rgba(24, 23, 20, 0.12)";
-    context.lineWidth = 1;
-    context.beginPath();
-    context.moveTo(cssWidth * 0.5, cssHeight * 0.15);
-    context.lineTo(cssWidth * 0.5, cssHeight * 0.83);
-    context.stroke();
-  }
-
   function drawFrame(time) {
     const state = animationState(time);
     context.clearRect(0, 0, cssWidth, cssHeight);
@@ -507,7 +498,6 @@
     const graphRadius = compact ? cssWidth * 0.19 : cssWidth * 0.14;
     const verticalCenter = cssHeight * 0.48;
 
-    drawDivider();
     drawCube(state, cssWidth * 0.21, verticalCenter, cubeScale);
     drawGraph(state, cssWidth * 0.7, verticalCenter, graphRadius);
   }
