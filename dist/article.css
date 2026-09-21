@@ -50,9 +50,9 @@
   /* 中文正文使用的行高倍数。 */
   --article-zh-leading: 1.78;
   /* 二级标题的字号。 */
-  --article-h2-size: 1.35rem;
+  --article-h2-size: 1.2rem;
   /* 三级标题的字号。 */
-  --article-h3-size: 1.2rem;
+  --article-h3-size: 1.05rem;
   /* 图片说明字号。 */
   --article-caption-size: 15px;
   /* 目录字号。 */
