@@ -3,13 +3,10 @@
 
   const canvas = document.querySelector("#cubeCanvas");
   const context = canvas.getContext("2d");
-  const timeline = document.querySelector("#timeline");
-  const timeOutput = document.querySelector("#timeOutput");
-  const moveLabel = document.querySelector("#moveLabel");
 
   const DURATION = 12.6;
   const INTRO = 0.48;
-  const MOVE_LENGTH = 0.94;
+  const MOVE_LENGTH = 0.78;
   const colors = {
     px: "#ef7137",
     nx: "#d94338",
@@ -40,12 +37,12 @@
     .slice()
     .reverse()
     .map(([axis, layer, direction]) => [axis, layer, -direction]);
+  const SOLVE_END = INTRO + solveMoves.length * MOVE_LENGTH;
 
   let cssWidth = 1280;
   let cssHeight = 720;
   let elapsed = 0;
   let lastTimestamp = null;
-  let draggingTimeline = false;
 
   const directionKeys = ["px", "nx", "py", "ny", "pz", "nz"];
   const directionVectors = {
@@ -158,13 +155,15 @@
       1,
       (completedMoves + (activeMove ? moveFraction : 0)) / solveMoves.length,
     );
+    const reviewProgress = Math.max(
+      0,
+      Math.min(1, (time - SOLVE_END) / Math.max(0.001, DURATION - SOLVE_END)),
+    );
 
-    return { cube, activeMove, moveFraction, completedMoves, progress };
+    return { cube, activeMove, moveFraction, completedMoves, progress, reviewProgress };
   }
 
-  function cameraPoint(point) {
-    const yaw = -0.69;
-    const pitch = 0.52;
+  function cameraPoint(point, yaw, pitch) {
     const [x, y, z] = point;
     const x1 = x * Math.cos(yaw) + z * Math.sin(yaw);
     const z1 = -x * Math.sin(yaw) + z * Math.cos(yaw);
@@ -225,7 +224,14 @@
   }
 
   function drawCube(state, originX, originY, scale) {
-    const viewDirection = [0.56, 0.4, 0.72];
+    const orbitAngle = state.reviewProgress * Math.PI * 2;
+    const cameraYaw = -0.69 - orbitAngle;
+    const cameraPitch = 0.52 + Math.sin(orbitAngle) * 0.2;
+    const viewDirection = [
+      -Math.sin(cameraYaw) * Math.cos(cameraPitch),
+      Math.sin(cameraPitch),
+      Math.cos(cameraYaw) * Math.cos(cameraPitch),
+    ];
     const renderedFaces = [];
     const axisIndex = state.activeMove ? { x: 0, y: 1, z: 2 }[state.activeMove[0]] : -1;
     const activeAngle = state.activeMove
@@ -251,7 +257,7 @@
           position[2] + normal[2] * 0.505,
         ];
         const worldCorners = faceCorners(center, normal, 0.91);
-        const cameraCorners = worldCorners.map(cameraPoint);
+        const cameraCorners = worldCorners.map((point) => cameraPoint(point, cameraYaw, cameraPitch));
         const depth = cameraCorners.reduce((sum, point) => sum + point[2], 0) / 4;
         const points = cameraCorners.map((point) => [
           originX + point[0] * scale,
@@ -285,45 +291,142 @@
     pz: Math.PI * 5 / 6,
   };
 
-  const graphFaceColors = {
-    nx: colors.nx,
-    py: colors.py,
-    nz: colors.nz,
-    px: colors.px,
-    ny: colors.ny,
-    pz: colors.pz,
+  const graphFaceOrder = ["nx", "py", "nz", "px", "ny", "pz"];
+  const faceFrames = {
+    px: { normal: [1, 0, 0], right: [0, 0, -1], down: [0, -1, 0] },
+    nx: { normal: [-1, 0, 0], right: [0, 0, 1], down: [0, -1, 0] },
+    py: { normal: [0, 1, 0], right: [1, 0, 0], down: [0, 0, 1] },
+    ny: { normal: [0, -1, 0], right: [1, 0, 0], down: [0, 0, -1] },
+    pz: { normal: [0, 0, 1], right: [1, 0, 0], down: [0, -1, 0] },
+    nz: { normal: [0, 0, -1], right: [-1, 0, 0], down: [0, -1, 0] },
   };
 
-  function graphClusterForNormal(normal, centerX, centerY, radius) {
-    const weights = {
-      px: Math.max(0, normal[0]),
-      nx: Math.max(0, -normal[0]),
-      py: Math.max(0, normal[1]),
-      ny: Math.max(0, -normal[1]),
-      pz: Math.max(0, normal[2]),
-      nz: Math.max(0, -normal[2]),
-    };
-    const weightTotal = Object.values(weights).reduce((sum, weight) => sum + weight, 0) || 1;
-    let x = 0;
-    let y = 0;
-
-    Object.entries(weights).forEach(([face, weight]) => {
-      const angle = graphFaceAngles[face];
-      x += Math.cos(angle) * radius * 0.58 * weight / weightTotal;
-      y += Math.sin(angle) * radius * 0.52 * weight / weightTotal;
-    });
-
-    return [centerX + x, centerY + y];
+  function faceKeyForNormal(normal) {
+    const [x, y, z] = normal;
+    if (Math.abs(x) >= Math.abs(y) && Math.abs(x) >= Math.abs(z)) return x >= 0 ? "px" : "nx";
+    if (Math.abs(y) >= Math.abs(z)) return y >= 0 ? "py" : "ny";
+    return z >= 0 ? "pz" : "nz";
   }
 
-  function colorKeyForSticker(color) {
-    return Object.keys(graphFaceColors).find((key) => graphFaceColors[key] === color);
+  function graphSlotPoint(faceKey, row, column, centerX, centerY, radius) {
+    const angle = graphFaceAngles[faceKey];
+    const spacing = radius * 0.087;
+    return [
+      centerX + Math.cos(angle) * radius * 0.58 + column * spacing,
+      centerY + Math.sin(angle) * radius * 0.52 + row * spacing,
+    ];
+  }
+
+  function stickerSlot(position, normal, centerX, centerY, radius) {
+    const faceKey = faceKeyForNormal(normal);
+    const frame = faceFrames[faceKey];
+    const row = Math.max(-1, Math.min(1, Math.round(dot(position, frame.down))));
+    const column = Math.max(-1, Math.min(1, Math.round(dot(position, frame.right))));
+    return {
+      faceKey,
+      row,
+      column,
+      point: graphSlotPoint(faceKey, row, column, centerX, centerY, radius),
+    };
+  }
+
+  function createGraphTopology() {
+    const slots = [];
+    const edges = [];
+
+    graphFaceOrder.forEach((faceKey) => {
+      const frame = faceFrames[faceKey];
+      for (let row = -1; row <= 1; row += 1) {
+        for (let column = -1; column <= 1; column += 1) {
+          const worldPosition = [0, 1, 2].map(
+            (axis) => frame.normal[axis] + frame.right[axis] * column + frame.down[axis] * row,
+          );
+          slots.push({ faceKey, row, column, worldPosition });
+          if (column < 1) {
+            edges.push({
+              type: "face",
+              from: { faceKey, row, column },
+              to: { faceKey, row, column: column + 1 },
+            });
+          }
+          if (row < 1) {
+            edges.push({
+              type: "face",
+              from: { faceKey, row, column },
+              to: { faceKey, row: row + 1, column },
+            });
+          }
+        }
+      }
+    });
+
+    const slotsByCubie = new Map();
+    slots.forEach((slot) => {
+      const key = slot.worldPosition.join(",");
+      if (!slotsByCubie.has(key)) slotsByCubie.set(key, []);
+      slotsByCubie.get(key).push(slot);
+    });
+
+    slotsByCubie.forEach((group) => {
+      for (let first = 0; first < group.length; first += 1) {
+        for (let second = first + 1; second < group.length; second += 1) {
+          const from = group[first];
+          const to = group[second];
+          edges.push({
+            type: "seam",
+            from: { faceKey: from.faceKey, row: from.row, column: from.column },
+            to: { faceKey: to.faceKey, row: to.row, column: to.column },
+          });
+        }
+      }
+    });
+
+    return { slots, edges };
+  }
+
+  const graphTopology = createGraphTopology();
+
+  function drawTopologyEdge(edge, centerX, centerY, radius) {
+    const from = graphSlotPoint(
+      edge.from.faceKey,
+      edge.from.row,
+      edge.from.column,
+      centerX,
+      centerY,
+      radius,
+    );
+    const to = graphSlotPoint(
+      edge.to.faceKey,
+      edge.to.row,
+      edge.to.column,
+      centerX,
+      centerY,
+      radius,
+    );
+
+    context.beginPath();
+    context.moveTo(from[0], from[1]);
+    if (edge.type === "seam") {
+      const middleX = (from[0] + to[0]) * 0.5;
+      const middleY = (from[1] + to[1]) * 0.5;
+      context.quadraticCurveTo(
+        centerX + (middleX - centerX) * 0.42,
+        centerY + (middleY - centerY) * 0.42,
+        to[0],
+        to[1],
+      );
+    } else {
+      context.lineTo(to[0], to[1]);
+    }
+    context.strokeStyle = edge.type === "seam" ? "rgba(24, 23, 20, 0.28)" : "rgba(24, 23, 20, 0.5)";
+    context.lineWidth = edge.type === "seam" ? Math.max(0.8, radius * 0.006) : Math.max(1, radius * 0.008);
+    context.stroke();
   }
 
   function drawGraph(state, centerX, centerY, radius) {
     context.save();
-    context.lineWidth = Math.max(1, radius * 0.008);
-    context.strokeStyle = "rgba(24, 23, 20, 0.38)";
+    context.lineWidth = Math.max(0.8, radius * 0.006);
+    context.strokeStyle = "rgba(24, 23, 20, 0.18)";
 
     for (let ring = 0; ring < 5; ring += 1) {
       context.beginPath();
@@ -344,11 +447,10 @@
       context.stroke();
     }
 
-    const nodeRadius = Math.max(4, radius * 0.036);
+    graphTopology.edges.forEach((edge) => drawTopologyEdge(edge, centerX, centerY, radius));
+
+    const nodeRadius = Math.max(3.8, radius * 0.035);
     const axisIndex = state.activeMove ? { x: 0, y: 1, z: 2 }[state.activeMove[0]] : -1;
-    const activeAngle = state.activeMove
-      ? state.activeMove[2] * Math.PI * 0.5 * state.moveFraction
-      : 0;
     const nodes = [];
 
     state.cube.forEach((cubie) => {
@@ -357,17 +459,20 @@
 
       cubie.faces.forEach((face) => {
         if (face.stickerId === null) return;
-        const normal = isActive
-          ? rotateVector(face.direction, state.activeMove[0], activeAngle)
-          : face.direction;
-        const [clusterX, clusterY] = graphClusterForNormal(normal, centerX, centerY, radius);
-        const indexInColor = face.stickerId % 9;
-        const localAngle = (Math.PI * 2 * indexInColor) / 9;
-        const localRadius = radius * (0.06 + (indexInColor % 3) * 0.022);
+        const startSlot = stickerSlot(cubie.position, face.direction, centerX, centerY, radius);
+        let endSlot = startSlot;
+
+        if (isActive) {
+          const finalAngle = state.activeMove[2] * Math.PI * 0.5;
+          const finalPosition = rotateVector(cubie.position, state.activeMove[0], finalAngle);
+          const finalNormal = rotateVector(face.direction, state.activeMove[0], finalAngle);
+          endSlot = stickerSlot(finalPosition, finalNormal, centerX, centerY, radius);
+        }
+
         nodes.push({
-          x: clusterX + Math.cos(localAngle) * localRadius,
-          y: clusterY + Math.sin(localAngle) * localRadius,
-          color: graphFaceColors[colorKeyForSticker(face.color)],
+          x: startSlot.point[0] + (endSlot.point[0] - startSlot.point[0]) * state.moveFraction,
+          y: startSlot.point[1] + (endSlot.point[1] - startSlot.point[1]) * state.moveFraction,
+          color: face.color,
         });
       });
     });
@@ -396,8 +501,6 @@
   function drawFrame(time) {
     const state = animationState(time);
     context.clearRect(0, 0, cssWidth, cssHeight);
-    context.fillStyle = colors.paper;
-    context.fillRect(0, 0, cssWidth, cssHeight);
 
     const compact = cssWidth < 650;
     const cubeScale = compact ? cssWidth * 0.102 : cssWidth * 0.072;
@@ -405,19 +508,8 @@
     const verticalCenter = cssHeight * 0.48;
 
     drawDivider();
-    drawCube(state, cssWidth * 0.25, verticalCenter, cubeScale);
-    drawGraph(state, cssWidth * 0.75, verticalCenter, graphRadius);
-
-    const progressValue = Math.round((time / DURATION) * 1000);
-    timeline.value = String(progressValue);
-    timeline.style.setProperty("--progress", `${progressValue / 10}%`);
-    timeOutput.value = `${formatTime(time)} / 00:13`;
-    moveLabel.textContent = `Move ${String(Math.min(11, state.completedMoves + (state.activeMove ? 1 : 0))).padStart(2, "0")} / 11`;
-  }
-
-  function formatTime(time) {
-    const seconds = Math.max(0, Math.min(13, Math.floor(time)));
-    return `00:${String(seconds).padStart(2, "0")}`;
+    drawCube(state, cssWidth * 0.21, verticalCenter, cubeScale);
+    drawGraph(state, cssWidth * 0.7, verticalCenter, graphRadius);
   }
 
   function resizeCanvas() {
@@ -432,30 +524,14 @@
   }
 
   function tick(timestamp) {
-    if (!draggingTimeline) {
-      if (lastTimestamp !== null) {
-        elapsed += (timestamp - lastTimestamp) / 1000;
-      }
-      if (elapsed >= DURATION) elapsed %= DURATION;
+    if (lastTimestamp !== null) {
+      elapsed += (timestamp - lastTimestamp) / 1000;
     }
+    if (elapsed >= DURATION) elapsed %= DURATION;
     lastTimestamp = timestamp;
     drawFrame(elapsed);
     window.requestAnimationFrame(tick);
   }
-
-  timeline.addEventListener("pointerdown", () => {
-    draggingTimeline = true;
-  });
-
-  timeline.addEventListener("input", () => {
-    elapsed = (Number(timeline.value) / 1000) * DURATION;
-    drawFrame(elapsed);
-  });
-
-  window.addEventListener("pointerup", () => {
-    draggingTimeline = false;
-    lastTimestamp = null;
-  });
 
   document.addEventListener("visibilitychange", () => {
     lastTimestamp = null;

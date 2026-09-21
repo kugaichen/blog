@@ -45,35 +45,19 @@
         </div>
 
         <section class="experiment" id="animation" aria-label="魔方与状态图动画">
-          <div class="section-kicker">
-            <span>Interactive study 01</span>
-            <span id="moveLabel">Move 00 / 11</span>
-          </div>
-
           <div class="animation-shell">
             <canvas
               id="cubeCanvas"
               width="1280"
               height="720"
               role="img"
-              aria-label="一个三阶魔方逐步复原，同时右侧图节点按颜色重新聚合的动画"
+              aria-label="一个三阶魔方逐步复原，右侧五十四个图节点沿六面拓扑归位成六个单色面簇，随后旋转检查六面的动画"
             >
               你的浏览器不支持 Canvas 动画。
             </canvas>
 
-            <div class="animation-legend" aria-hidden="true">
-              <span>Rubik state</span>
-              <span>Graph state</span>
-            </div>
           </div>
 
-          <div class="player" aria-label="动画进度">
-            <label class="timeline-label" for="timeline">
-              <span class="sr-only">动画进度</span>
-              <input id="timeline" type="range" min="0" max="1000" value="0" />
-            </label>
-            <output id="timeOutput" for="timeline">00:00 / 00:13</output>
-          </div>
         </section>
       </section>
 
