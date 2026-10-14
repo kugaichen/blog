@@ -1025,14 +1025,13 @@ language: zh-CN
 <p class="atp-note-label">09 /第四章Implementation这一页的写法都值得学习</p>
 <div class="atp-chain">
 <div class="atp-step atp-step-Reflect">
-
-<span class="atp-tag">（(开篇结构)）</span><strong>第四章Implementation开头值得学习：再一次强调了本工作的组成</strong> =>开篇第一句直接拎出实现的两部分核心：`ATP's implementation consists of (i) the protocol logic on P4 switches and end host, and (ii) hardware offloads to optimize small-packet performance.`
+<span class="atp-tag">（开篇结构）</span><strong>第四章Implementation开头值得学习：再一次强调了本工作的组成</strong> =>开篇第一句直接拎出实现的两部分核心：`ATP's implementation consists of (i) the protocol logic on P4 switches and end host, and (ii) hardware offloads to optimize small-packet performance.`
 
 </div>
 <div class="atp-arrow">↓</div>
 <div class="atp-step">
 
-<span class="atp-tag">（(交换机实现)）</span><strong>给出关键实现细节描述，不影响主线阅读但能勾起读者兴趣的细节放到附录</strong>：
+<span class="atp-tag">（交换机实现）</span><strong>给出关键实现细节描述，不影响主线阅读但能勾起读者兴趣的细节放到附录</strong>：
 
 - <strong>Two-pass突破解析限制</strong>：前人单次过流水线（single pass）包长受限于`184B`；ATP混用`resubmit`与`recirculate`实现<strong>two-pass</strong>，将最大包长提升至`306B`（留出4个switch stages给控制逻辑），并把流水线排布细节引向附录`§C`；
 - <strong>突破单次寄存器访问限制（Control logic）</strong>：利用向bitmap写1的幂等性（`old_bitmap OR packet_bitmap`），在一次stateful ALU操作中把旧bitmap输出到metadata并同时写回置位后的新值，后续读取metadata判断是否重复并决定是否执行SUM（核对作者公开代码[`common.p4`](https://github.com/in-ATP/ATP/blob/main/p4src/includes/common.p4#L27-L35)确认）；同时用梯度包分配槽位、用参数包释放槽位（跨包拆分访问）。
@@ -1040,14 +1039,12 @@ language: zh-CN
 </div>
 <div class="atp-arrow">↓</div>
 <div class="atp-step">
-
-<span class="atp-tag">（(协议栈嵌入)）</span><strong>介绍端侧协议栈的适配和嵌入：这里讲和其他工作如何集成、如何便于用户使用</strong> =>将ATP实现为<strong>BytePS plugin</strong>，无缝接入PyTorch、TensorFlow和MXNet，在Worker与PS通信时拦截`Push`和`Pull`调用，用户无需修改训练应用代码。
+<span class="atp-tag">（协议栈嵌入）</span><strong>介绍端侧协议栈的适配和嵌入：这里讲和其他工作如何集成、如何便于用户使用</strong> =>将ATP实现为<strong>BytePS plugin</strong>，无缝接入PyTorch、TensorFlow和MXNet，在Worker与PS通信时拦截`Push`和`Pull`调用，用户无需修改训练应用代码。
 
 </div>
 <div class="atp-arrow">↓</div>
 <div class="atp-step">
-
-<span class="atp-tag">（(系统级优化)）</span><strong>从系统的角度讲了小报文的处理优化，这些确实都是实现细节，适合放到第四章讲解=>同时这里还介绍了网卡对于收发包的作用，以及多线程的作用</strong>：
+<span class="atp-tag">（系统级优化）</span><strong>从系统的角度讲了小报文的处理优化，这些确实都是实现细节，适合放到第四章讲解=>同时这里还介绍了网卡对于收发包的作用，以及多线程的作用</strong>：
 
 - <strong>网卡硬件卸载（TSO + MP-QP）</strong>：发送端利用`TSO`将分片卸载至NIC并通过大块DMA提升PCIe带宽；接收端利用`MP-QP`让单个描述符指定多个连续报文缓冲，将NIC内存占用降低至少`512×`，大幅减少收发调用与描述符DMA次数；
 - <strong>多线程负载均衡调度器</strong>：为了防止多线程处理报文时负载不均，每个Worker设置一个中心化调度器（centralized scheduler），维护各线程的总负载，收到待发送tensor时提取其大小并分配给当前负载最轻的线程。
