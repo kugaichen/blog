@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#fdfcf9" />
+    <meta name="description" content="基于正式PDF高清原文的逻辑链式精读笔记：ATP如何提出多租户INA问题、设计端网协同协议、突破可编程交换机硬件限制，以及围绕系统设计开展实验与消融验证。" />
+    <title>读ATP：从多租户聚合，到一个完整的网络系统 — Kugai Chen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;family=Noto+Serif+SC:wght@400;600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../../styles.css" />
+    <link rel="stylesheet" href="../../article.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#article">Skip to article</a>
+    <header class="site-header article-site-header">
+      <a class="brand" href="../../">Kugai Chen</a>
+      <nav class="article-nav" aria-label="Primary navigation">
+        <a href="../../#series">Series</a>
+        <a href="../../#connectionism">Connectionism</a>
+      </nav>
+    </header>
+
+    <main class="article-page" id="article">
+      <header class="article-hero">
+        <p class="article-series">Paper Reading</p>
+        <h1>读ATP：从多租户聚合，到一个完整的网络系统</h1>
+        <p class="article-byline"><span>Kugai Chen</span><time datetime="2026-10-13">October 13, 2026</time></p>
+      </header>
+      <div class="post-content-shell">
+
+        <nav class="article-toc" aria-label="Table of contents">
+          <p class="toc-heading">Contents</p>
+          <ul><li><a href="#1-快速索引">1.快速索引</a></li>
+<li><a href="#2-introduction-motivation-先界定问题-再引出动机">2. Introduction &amp; Motivation：先界定问题，再引出动机</a><ul><li><a href="#2-1从已有能力走向多租户新问题">2.1从已有能力走向多租户新问题</a></li><li><a href="#2-2引言结尾的分段式贡献阐述">2.2引言结尾的分段式贡献阐述</a></li><li><a href="#2-3-figure-3-从观察实验引出motivation与端网协同">2.3 Figure 3：从观察实验引出Motivation与端网协同</a></li></ul></li>
+<li><a href="#3-design-按照协议责任边界组织系统">3. Design：按照协议责任边界组织系统</a><ul><li><a href="#3-1系统整体运行路径与端网协议闭环">3.1系统整体运行路径与端网协议闭环</a></li><li><a href="#3-2-figure-5-6-包头携带方向-交换机保存进度">3.2 Figure 5–6：包头携带方向，交换机保存进度</a></li></ul></li>
+<li><a href="#4-placement-跨机架两级聚合-rss-vs-atp">4. Placement：跨机架两级聚合（RSS vs. ATP）</a></li>
+<li><a href="#5-reliability-让不完整的聚合安全退出">5. Reliability：让不完整的聚合安全退出</a></li>
+<li><a href="#6-congestion-control-保留聚合过程中的拥塞信号">6. Congestion Control：保留聚合过程中的拥塞信号</a></li>
+<li><a href="#7-implementation-硬件限制突破与端侧系统优化">7. Implementation：硬件限制突破与端侧系统优化</a><ul><li><a href="#7-1第四章主线写法-交换机限制突破与端侧优化组合">7.1第四章主线写法、交换机限制突破与端侧优化组合</a></li><li><a href="#7-2-overflow-浮点量化与饱和溢出回退">7.2 Overflow：浮点量化与饱和溢出回退</a></li></ul></li>
+<li><a href="#8-evaluation-围绕系统设计开展实验与消融验证">8. Evaluation：围绕系统设计开展实验与消融验证</a><ul><li><a href="#8-1实验章节导引与metrics-baselines-workloads配置">8.1实验章节导引与Metrics / Baselines / Workloads配置</a></li><li><a href="#8-2-figure-12-多任务dumbbell拓扑下的端到端tta验证">8.2 Figure 12：多任务Dumbbell拓扑下的端到端TTA验证</a></li><li><a href="#8-3-figure-13a-13b-动态共享vs-静态分区与动态hash收敛过程">8.3 Figure 13a &amp; 13b：动态共享vs.静态分区与动态Hash收敛过程</a></li><li><a href="#8-4-figure-13c-figure-14-资源不足下的动态复用时序与多job消融实验">8.4 Figure 13c &amp; Figure 14：资源不足下的动态复用时序与多Job消融实验</a></li><li><a href="#8-5-figure-15-拥塞控制消融实验-with-other-atp-traffic">8.5 Figure 15：拥塞控制消融实验（With other ATP traffic）</a></li><li><a href="#8-6-figure-16-附录figure-20-与非atp背景流量共存及多任务公平性边界">8.6 Figure 16 &amp;附录Figure 20：与非ATP背景流量共存及多任务公平性边界</a></li></ul></li>
+<li><a href="#9-总结-这次阅读留下的研究与写作方法">9.总结：这次阅读留下的研究与写作方法</a></li></ul>
+        </nav>
+        <article class="article-body">
+<style>
+/*
+ * ATP-specific figures and annotations only.
+ * Typography and page grid follow the site's dist/article.css.
+ * The original article text and image references are unchanged.
+ */
+/* Center the complete figures-and-notes column, with room for a separate TOC. */
+.article-page:has(.atp-reading) {
+  --article-width: 1040px;
+  --article-toc-width: 200px;
+  --article-toc-gap: 96px;
+}
+.article-page:has(.atp-reading) .post-content-shell {
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--article-width)) minmax(0, 1fr);
+  width: calc(100% - 2.6rem);
+}
+
+/* Base reading container: inherits exact blog typography */
+.atp-reading {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.atp-reading p {
+  margin: 0 0 var(--article-paragraph-gap);
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.atp-reading strong {
+  font-weight: 600;
+  color: var(--ink, #282828);
+}
+.atp-reading u {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(40, 40, 40, 0.45);
+}
+
+/* Opening Lede & Paper Metadata Card */
+.atp-reading .atp-meta-card {
+  margin: 0 0 2rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.atp-reading .atp-lede {
+  margin: 0 0 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--hair, rgba(0, 0, 0, 0.08));
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.atp-reading .atp-biblio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.2rem;
+  margin: 0 0 0.9rem;
+  font-family: var(--article-sans);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--ink-soft, #504945);
+}
+.atp-reading .atp-biblio em {
+  font-family: var(--article-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--ink, #282828);
+}
+.atp-reading .atp-biblio-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.atp-reading .atp-biblio-links a {
+  display: inline-block;
+  padding: 0.18rem 0.6rem;
+  background: #fff;
+  border: 1px solid var(--hair-strong, rgba(0, 0, 0, 0.16));
+  border-radius: 4px;
+  font-family: var(--article-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink, #282828);
+  text-decoration: none;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.atp-reading .atp-biblio-links a:hover {
+  background: var(--article-code-inline-bg, #f3f3f0);
+  border-color: var(--ink, #282828);
+}
+
+/* Researcher Spec Grid (Quick Architecture & Testbed Parameters) */
+.atp-reading .atp-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+  font-family: var(--article-sans);
+}
+.atp-reading .atp-spec-item {
+  padding: 0.65rem 0.8rem;
+  background: #fff;
+  border: 1px solid var(--hair, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-soft, #504945);
+}
+.atp-reading .atp-spec-item strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted, #676767);
+}
+
+/* Toolbar for Layout Switching (Side-by-Side vs Stacked Wide View) */
+.atp-reading .atp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.2rem 0 1.8rem;
+  padding: 0.55rem 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: 12.5px;
+  color: var(--muted, #676767);
+}
+.atp-reading .atp-view-btns {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+.atp-reading .atp-view-btn {
+  padding: 0.22rem 0.65rem;
+  background: #fff;
+  border: 1px solid var(--hair-strong, rgba(0, 0, 0, 0.16));
+  border-radius: 4px;
+  font-family: var(--article-sans);
+  font-size: 12px;
+  color: var(--ink-soft, #504945);
+  cursor: pointer;
+}
+.atp-reading .atp-view-btn.active {
+  background: var(--ink, #282828);
+  border-color: var(--ink, #282828);
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Two-Column Spread: Left Paper Figures + Right Arrow-Chain Notes */
+.atp-reading .atp-spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 2rem;
+  /* Both columns stay inside the centered article body. */
+  width: 100%;
+  max-width: none;
+  margin: 1.6rem 0 2.8rem;
+  align-items: start;
+}
+.atp-reading.atp-wide-mode .atp-spread {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.4rem;
+  max-width: none;
+}
+.atp-reading.atp-wide-mode .atp-notes {
+  position: static;
+  max-height: none;
+  overflow-y: visible;
+}
+
+.atp-reading .atp-source {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.atp-reading .atp-source-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: start;
+}
+.atp-reading .atp-source-card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 0 0 0.85rem;
+}
+.atp-reading .atp-pdf-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.65rem;
+  padding: 0.3rem 0;
+  background: transparent;
+  border-bottom: 1px solid var(--hair);
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft, #504945);
+  line-height: 1.4;
+}
+.atp-reading .atp-pdf-tag a {
+  font-family: var(--article-mono);
+  font-size: 11px;
+  color: var(--muted, #676767);
+  text-decoration: none;
+}
+.atp-reading .atp-pdf-tag a:hover {
+  color: var(--ink, #282828);
+  text-decoration: underline;
+}
+.atp-reading .atp-source-card p {
+  margin: 0;
+}
+.atp-reading .atp-source-card p + p {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--hair, rgba(0, 0, 0, 0.08));
+}
+.atp-reading .atp-source img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 3px;
+  cursor: zoom-in;
+}
+
+/* Right-hand Arrow-Chain Annotations: Clean Editorial Typography */
+.atp-reading .atp-notes {
+  min-width: 0;
+  position: sticky;
+  top: var(--article-toc-top);
+  max-height: calc(100dvh - var(--article-toc-top) - 1.5rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-left: 1.25rem;
+  padding-right: 0.35rem;
+  border-left: 1px solid var(--hair);
+}
+.atp-reading .atp-notes :is(p, li) {
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+.atp-reading .atp-note-label,
+.atp-reading .atp-notes p.atp-note-label {
+  margin: 0 0 0.85rem;
+  font-family: var(--article-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #676767);
+  line-height: 1.4;
+}
+.atp-reading .atp-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.atp-reading .atp-step {
+  padding: 0.3rem 0 0.3rem 0.85rem;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--hair);
+  border-radius: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.atp-reading .atp-step p {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+.atp-reading .atp-step p + p {
+  margin-top: 0.5rem;
+}
+.atp-reading .atp-step ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+.atp-reading .atp-step li {
+  margin-bottom: 0.25rem;
+  line-height: 1.68;
+}
+.atp-reading .atp-step-Reflect {
+  background: transparent;
+  border-left-color: color-mix(in srgb, var(--ink) 38%, transparent);
+}
+.atp-reading .atp-tag {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  vertical-align: baseline;
+}
+.atp-reading .atp-step-Reflect .atp-tag {
+  background: transparent;
+  color: var(--ink-soft);
+}
+.atp-reading .atp-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 0.85rem;
+  height: 2rem;
+  margin: 0.2rem 0;
+  font-family: var(--article-sans);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgba(140, 140, 140, 0.65);
+  user-select: none;
+  line-height: 1;
+}
+.atp-reading .atp-notes .atp-caution {
+  margin: 0.85rem 0 0;
+  padding: 0.5rem 0 0.5rem 0.85rem;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--hair);
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--ink-soft, #504945);
+}
+
+/* Right-hand notes use the reference article's single bilingual body style. */
+.atp-reading .atp-notes,
+.atp-reading .atp-notes :is(p, li, span, strong, em, i, code, u),
+.atp-reading .atp-notes .atp-note-label,
+.atp-reading .atp-notes .atp-tag,
+.atp-reading .atp-notes .atp-caution {
+  font-family: var(--article-serif);
+  font-size: inherit;
+  font-weight: 400;
+  font-style: normal;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  color: inherit;
+}
+.atp-reading .atp-notes strong {
+  font-weight: 600;
+}
+.atp-reading .atp-notes code {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.atp-reading .atp-notes :is(em, i, u) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: currentColor;
+}
+
+/* Full-width quick index; preserve readable columns on small screens. */
+.atp-reading .atp-quick-index {
+  width: 100%;
+  overflow-x: auto;
+}
+.atp-reading .atp-quick-index table {
+  width: 100%;
+  min-width: 760px;
+  max-width: none;
+  table-layout: fixed;
+}
+.atp-reading .atp-quick-index :is(th, td):nth-child(1) {
+  width: 23%;
+}
+.atp-reading .atp-quick-index :is(th, td):nth-child(2) {
+  width: 22%;
+}
+.atp-reading .atp-quick-index :is(th, td):nth-child(3) {
+  width: 55%;
+}
+
+/* Avoid clipping the left TOC on narrower desktop viewports. */
+@media (max-width: 1700px) {
+  .article-page:has(.atp-reading) .post-content-shell {
+    display: block;
+    width: min(var(--article-width), calc(100% - 2.6rem));
+  }
+  .article-page:has(.atp-reading) .article-toc {
+    position: static;
+    width: 100%;
+    max-height: none;
+    margin: 0 0 4rem;
+    padding: 0;
+    overflow: visible;
+  }
+  .atp-reading .atp-spread {
+    width: 100%;
+  }
+  .atp-reading .atp-spec-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 780px) {
+  .atp-reading .atp-spread {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .atp-reading .atp-source-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atp-reading .atp-notes {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding-left: 0.9rem;
+  }
+  .atp-reading .atp-spec-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atp-reading .atp-toolbar {
+    display: none;
+  }
+}
+@media print {
+  .article-page:has(.atp-reading) .article-toc,
+  .atp-reading .atp-toolbar {
+    display: none;
+  }
+  .article-page:has(.atp-reading) .post-content-shell {
+    display: block;
+    width: 100%;
+  }
+  .atp-reading .atp-spread {
+    display: block;
+  }
+  .atp-reading .atp-notes {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+</style><div class="atp-reading" id="atp-reading-root"><div class="atp-meta-card">
+<p class="atp-lede">ATP我认为最值得学习的是：从网络系统的角度，如何将<strong>交换机数据面与端侧协议栈的协同逻辑</strong>层层讲透；同时在实验章节，严格围绕系统设计点组织受控实验与逐项消融验证。</p>
+<div class="atp-biblio">
+  <span><em>ATP: In-network Aggregation for Multi-tenant Learning</em> · ChonLam Lao等(UW–Madison, Tsinghua, Intel) · <strong>USENIX NSDI 2021</strong></span>
+  <span class="atp-biblio-links">
+    <a href="https://www.usenix.org/system/files/nsdi21-lao.pdf" target="_blank" rel="noreferrer">📄论文PDF</a>
+    <a href="https://www.usenix.org/conference/nsdi21/presentation/lao" target="_blank" rel="noreferrer">🏛️ NSDI '21会议页</a>
+    <a href="https://github.com/in-ATP/ATP" target="_blank" rel="noreferrer">💻作者开源代码</a>
+  </span>
+</div>
+<div class="atp-spec-grid">
+  <div class="atp-spec-item">
+    <strong>Switch Data Plane</strong>
+    Barefoot Tofino P4 · Two-pass <code>306B</code>报文（<code>16B</code> Header + <code>62×INT32</code>）·两级<code>32-bit</code> Bitmap
+  </div>
+  <div class="atp-spec-item">
+    <strong>End-Host Stack</strong>
+    BytePS插件（透明接入PyTorch/TF/MXNet）· RAW ETHERNET · <code>TSO</code> + <code>MP-QP</code>（省<code>512×</code> NIC内存）
+  </div>
+  <div class="atp-spec-item">
+    <strong>Reliability &amp; CC</strong>
+    Best-effort动态抢占（碰撞即回退PS）·聚合槽按位或（<code>OR</code>）保留<code>ECN</code> + <code>3</code>乱序ACK降窗
+  </div>
+  <div class="atp-spec-item">
+    <strong>Evaluation Scale</strong>
+    <code>8</code> Workers + <code>1</code> PS (<code>100GbE</code>) · 3×VGG16峰值标尺<code>100% PTA = 1980</code>槽·单PS饱和吞吐<code>60Gbps</code>
+  </div>
+</div>
+</div><div class="atp-toolbar">
+  <span>💡 <strong>阅读提示</strong>：左侧为原论文高清批注段落与图表（点击任意图片可放大细看），右侧为“文字+箭头（↓ / →）”逻辑推导链。</span>
+  <div class="atp-view-btns">
+    <button type="button" class="atp-view-btn active" data-view="split">双栏对照视图</button>
+    <button type="button" class="atp-view-btn" data-view="wide">宽幅上下视图</button>
+  </div>
+</div><h2 id="1-快速索引"><a class="heading-anchor" href="#1-快速索引" aria-label="Link to this section">#</a>1.快速索引</h2>
+<div class="atp-quick-index"><table>
+<thead>
+<tr>
+<th align="left">章节模块</th>
+<th align="left">原论文对应位置</th>
+<th align="left">核心设计逻辑链（问题切入→核心机制→评估与批判思考）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>§2 Introduction &amp; Motivation</strong></td>
+<td align="left">PDF p.2–4 · §1, §2.2, Fig. 3</td>
+<td align="left">大背景说明INC省带宽价值→指出SwitchML静态单任务局限→用VGG16的<code>on/off</code>通信间隙引出多租户动态复用机会→引出端网协同的Reliability与CC</td>
+</tr>
+<tr>
+<td align="left"><strong>§3 Design：协议责任边界</strong></td>
+<td align="left">PDF p.5–8 · §3.1–3.7, Fig. 4–7</td>
+<td align="left">正常路径由交换机聚合、碰撞忙槽直接旁路送PS → <code>16B</code>包头方向与聚合槽状态对齐→用Figure 7一图言之讲清Switch本地动作与End-Host闭环</td>
+</tr>
+<tr>
+<td align="left"><strong>§4 Placement：跨机架两级聚合</strong></td>
+<td align="left">PDF p.6–7, p.11–12 · §3.4, §5.2.2, Fig. 9</td>
+<td align="left">单机架方案（RSS）仍需向PS发送多份结果→核心网ECMP路由变化耦合代价高→选定Worker ToR（一级）+ PS ToR（二级）必经点聚合，缩减PS侧<code>66%</code>流量</td>
+</tr>
+<tr>
+<td align="left"><strong>§5 Reliability：碰撞恢复与回收</strong></td>
+<td align="left">PDF p.8–9, p.19 · §3.6–3.7, Fig. 17</td>
+<td align="left">早到分片碰撞直达PS、晚到分片留守交换机导致停滞→超时重传解当前停滞+ Rehash改后续映射→两级Bitmap粒度差异决定一级发Partial、二级透传PS</td>
+</tr>
+<tr>
+<td align="left"><strong>§6 Congestion Control：拥塞控制</strong></td>
+<td align="left">PDF p.9 · §3.7</td>
+<td align="left">多Worker同步等待污染端到端RTT →改用交换机ECN标记并在聚合槽内按位<code>OR</code>保留→随Parameter ACK广播回全体Worker调窗口，结合<code>3</code>乱序ACK降速</td>
+</tr>
+<tr>
+<td align="left"><strong>§7 Implementation：硬件限制突破</strong></td>
+<td align="left">PDF p.9–10, p.21 · §3.8, §4, Fig. 19</td>
+<td align="left">开篇点明“协议逻辑+小包卸载”双主线→ Two-pass突破单次解析上限至<code>306B</code> →利用Bitmap置位幂等性完成单次ALU读写→端侧BytePS插件、TSO/MP-QP与多线程负载均衡</td>
+</tr>
+<tr>
+<td align="left"><strong>§8 Evaluation：实验设计与消融</strong></td>
+<td align="left">PDF p.10–14, p.22 · §5.1–5.5, Fig. 12–16, 20</td>
+<td align="left">6个评估问题导引→明确Metrics / Baselines / Workloads → Dumbbell双任务TTA（Fig. 12）→ PTA标定与<code>33%</code>压测（Fig. 13/14）→ CC消融（Fig. 15）与Max-Min公平性（Fig. 16/20）</td>
+</tr>
+</tbody></table>
+</div><h2 id="2-introduction-motivation-先界定问题-再引出动机"><a class="heading-anchor" href="#2-introduction-motivation-先界定问题-再引出动机" aria-label="Link to this section">#</a>2. Introduction &amp; Motivation：先界定问题，再引出动机</h2>
+<blockquote class="article-abstract"><p><span class="annotation-label">Abstract:</span> <strong>本节核心逻辑链</strong>：<code>INC 省带宽大背景</code> → <code>SwitchML 静态单任务局限</code> → <code>VGG16 通信 on/off 交织现象（Fig. 3）</code> → <code>跨任务动态复用机会 + Best-effort 端网协同（Reliability &amp; CC）</code></p>
+</blockquote>
+<h3 id="2-1从已有能力走向多租户新问题"><a class="heading-anchor" href="#2-1从已有能力走向多租户新问题" aria-label="Link to this section">#</a>2.1从已有能力走向多租户新问题</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.2右栏· §1 Introduction</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=2" target="_blank" rel="noreferrer">PDF p.2 · p.741 ↗</a></div><figure><img src="figures/01-intro-gap.webp" alt="Introduction原文节选：已有工作、问题边界与系统目标。" loading="lazy"><figcaption>Introduction原文节选：已有工作、问题边界与系统目标。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">01 /引言起手式与问题定位</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（背景切入）</span><strong>先说明INC（在网计算）的重要性</strong>：将梯度聚合下推到网络内部，核心收益是减少<code>bandwidth consumption from workers to PS(s)</code>，从而推高梯度流总吞吐、缩短分布式训练时间。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（SOTA边界）</span><strong>再用现有工作SwitchML认可INC的价值，进而限定尚未覆盖的场景</strong>：重点指出当前SOTA还没解决的问题=&gt;即如何<em>making aggregation a true in-network service to be leveraged by multiple DT tenants in a multi-rack/multi-switch cluster</em>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（个人批注）</span><strong>关于“In-Network Service”的拔高立意</strong>：ATP其实只有前两章提到了<em>in-network service</em>的contribution，在实现部分并没有展开说明其端网协同如何进一步作为集群级服务向上支撑多应用，因此这里本质上是一种拔高立意的写作技巧（个人拙见）。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（核心主题句）</span><strong>顺势一句话引入全文主题（非常值得学习的写法）</strong>：起手句是<u><em>The key goal of our work is to speed up multiple DT jobs running simultaneously in a cluster by maximizing the benefits from in-network multi-switch aggregation, and distributing these benefits across multiple DT jobs in an equitable manner.</em></u> =&gt; <strong>一句话同时交代了最核心的贡献+应用场景</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（系统特性）</span><strong>最后概括介绍ATP的三项features</strong>：提出<code>a) dynamic aggregation</code>、<code>b) decentralized mechanisms</code>、<code>c) best-effort</code> =&gt;比较特别的是论文正文后续并没有严格围绕这三个feature词逐一展开，更像是作者在引言层给出的概括定义。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="2-2引言结尾的分段式贡献阐述"><a class="heading-anchor" href="#2-2引言结尾的分段式贡献阐述" aria-label="Link to this section">#</a>2.2引言结尾的分段式贡献阐述</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.3左栏· §1 Introduction贡献总结</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=3" target="_blank" rel="noreferrer">PDF p.3 · p.742 ↗</a></div><figure><img src="figures/02-intro-contributions.webp" alt="Introduction结尾：协议协同、实现能力、实验结果。" loading="lazy"><figcaption>Introduction结尾：协议协同、实现能力、实验结果。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">02 /不必拘泥于贡献列表：采用层层递进的分段阐述</p>
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（写作借鉴）</span><strong>不必拘泥于bullet list</strong>：系统论文常采用列表形式罗列贡献，但ATP没有用列表，而是采用<strong>三段自然递进</strong>的形式把“问题→实现突破→实验结论”串成完整叙事。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（核心问题）</span><strong>回答ATP解决的核心问题是什么</strong>：梯度包在网络中被聚合、被吸收后，<strong>原有端到端协议会把这些正常事件误判为丢包</strong>（<em>misinterpreted as packet loss</em>） =&gt;于是ATP提出共同设计<code>switch logic</code>和<code>end-host networking stack</code>（思路引导非常自然：在网计算需要switch，但等待聚合的过程会被传统端到端协议理解成丢包，因此设计出end-host逻辑，构成<strong>端网协同系统</strong>）。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（实现）</span><strong>交代ATP的实现克服了什么困难</strong>：直接阐明作者为了实现ATP克服了可编程交换机的哪些现有限制：<code>limited primitives</code>、<code>ungenerous memory limits</code>、<code>restricting reads/writes</code>以及浮点量化计算（<code>floating point quantization</code>）；并且说明端侧采用kernel bypass设计，不会影响传统网络栈对非ATP应用的服务。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（性能增益）</span><strong>给出ATP的实验结论与量化收益</strong>：50%聚合器预算下性能仅降<code>5–10%</code>、重度争用下优于SOTA <code>38%</code>、多机架仿真减少<code>66%</code>网络流量、丢包恢复优于SwitchML <code>34%</code>、开启CC带来<code>3×</code>加速。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="2-3-figure-3-从观察实验引出motivation与端网协同"><a class="heading-anchor" href="#2-3-figure-3-从观察实验引出motivation与端网协同" aria-label="Link to this section">#</a>2.3 Figure 3：从观察实验引出Motivation与端网协同</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.4右上· Figure 3 (单Worker–PS的VGG16通信时序)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=4" target="_blank" rel="noreferrer">PDF p.4 · Fig.3 ↗</a></div><figure><img src="figures/03-fig3-on-off.webp" alt="原论文Figure 3：单Worker–PS的VGG16通信时间序列。" loading="lazy"><figcaption>原论文Figure 3：单Worker–PS的VGG16通信时间序列。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.4左栏· §2.2 In-Network Aggregation as a Service</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=4" target="_blank" rel="noreferrer">PDF p.4 · §2.2 ↗</a></div><figure><img src="figures/04-service-motivation.webp" alt="§2.2原文：作者明确指出静态分区阻止跨Job复用。" loading="lazy"><figcaption>§2.2原文：作者明确指出静态分区阻止跨Job复用。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.4右栏· §2.2 Rethinking Reliability &amp; Congestion-Control</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=4" target="_blank" rel="noreferrer">PDF p.4 · §2.2 ↗</a></div><figure><img src="figures/04b-rethinking-service.webp" alt="§2.2 Rethinking Reliability与Rethinking Congestion-Control原文批注。" loading="lazy"><figcaption>§2.2 Rethinking Reliability与Rethinking Congestion-Control原文批注。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">03 /观察实验的引导与端网协同立意</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（引出动机）</span><strong>ATP同样通过一个观察实验（Figure 3）来引出系统Motivation</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（直接现象）</span><strong>图3直接展示的现象</strong>：VGG16通信存在明显的<code>on/off</code>阶段交替，而不是始终以恒定速率发数据=&gt; <u>通信和计算的交织特性使得动态支持多租户存在机会，交换机的通信与聚合资源并不会每时每刻都在进行服务</u>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（作者推论）</span><strong>作者由此提出的观察结论</strong>：Job A不通信（off phase）时，其预留资源本可被正在通信（on phase）的Job B动态使用；静态分区阻止了这种复用，且在资源争用时死等交换机槽位会浪费链路带宽=&gt;因此提出<strong>best-effort在网聚合+端侧PS回退</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（个人批注）</span><strong>区分“间接现象”与“直接证据”</strong>：我认为单任务存在on/off是非常符合直觉的<strong>间接现象</strong>，而不是一种可以直接推论出多租户收益的直接证据（虽然这部分的逻辑符合直觉，但从“观察到单任务通信波动”到“推断存在跨任务复用机会”，再到“受控实验验证性能收益”，中间仍隔着一层推论）。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Motivation升级）</span><strong>In-Network Aggregation as a Service</strong>：顺着引导出的motivation，接着从端网协同的角度考虑了<code>Reliability</code>和<code>Congestion-Control</code>。这里确实构成了In-Network Aggregation as a service的基本框架，但作为一个真正的集群service仍有很多隔离与调度问题需要考虑；全文主要在这里引导出思路，后续重点并不在service抽象本身。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="3-design-按照协议责任边界组织系统"><a class="heading-anchor" href="#3-design-按照协议责任边界组织系统" aria-label="Link to this section">#</a>3. Design：按照协议责任边界组织系统</h2>
+<blockquote>
+<p><strong>本节核心逻辑链</strong>：<code>正常路径 Switch 聚合 + 碰撞忙槽旁路回退 PS（Fig. 4）</code> → <code>16B 包头元数据与聚合槽状态对齐（Fig. 5–6）</code> → <code>Switch 单包动作（Fig. 7）+ End-Host 恢复闭环（§3.5–3.7）</code></p>
+</blockquote>
+<h3 id="3-1系统整体运行路径与端网协议闭环"><a class="heading-anchor" href="#3-1系统整体运行路径与端网协议闭环" aria-label="Link to this section">#</a>3.1系统整体运行路径与端网协议闭环</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.5顶部· Figure 4 (§3.1 System Overview)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=5" target="_blank" rel="noreferrer">PDF p.5 · Fig.4 ↗</a></div><figure><img src="figures/37-fig4-overview.webp" alt="原论文Figure 4：同一系统中的交换机快路径与PS回退路径。" loading="lazy"><figcaption>原论文Figure 4：同一系统中的交换机快路径与PS回退路径。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.7左上· Figure 7 (理想情况下的交换机聚合逻辑流程图)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=7" target="_blank" rel="noreferrer">PDF p.7 · Fig.7 ↗</a></div><figure><img src="figures/05a-fig7-flowchart.webp" alt="原论文Figure 7：理想情况下的交换机聚合处理逻辑流程图。" loading="lazy"><figcaption>原论文Figure 7：理想情况下的交换机聚合处理逻辑流程图。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.7右栏– p.8左栏· §3.5 Switch Logic / §3.6 Host Logic / §3.7 Reliability</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=7" target="_blank" rel="noreferrer">PDF p.7–8 · §3.5–3.7 ↗</a></div><figure><img src="figures/05-switch-logic.webp" alt="§3.5：交换机处理分配、聚合与释放。" loading="lazy"><figcaption>§3.5：交换机处理分配、聚合与释放。</figcaption></figure>
+<figure><img src="figures/06-host-logic.webp" alt="§3.6：Worker / PS共同完成端到端聚合。" loading="lazy"><figcaption>§3.6：Worker / PS共同完成端到端聚合。</figcaption></figure>
+<figure><img src="figures/07-reliability.webp" alt="§3.7：正常流程之外，还要解释未完成片段如何恢复。" loading="lazy"><figcaption>§3.7：正常流程之外，还要解释未完成片段如何恢复。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">04 /系统整体设计：先看完整执行，再拆两端责任</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（核心路径）</span><strong>直接告知系统的基本思路=&gt;正常情况switch执行+异常情况再送往PS进行处理</strong>：Figure 4先让读者看懂一个最小案例：A片段命中空槽，在交换机内合并；B片段命中忙槽，直接继续送往PS。两种路径最终都由PS返回结果。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（PS的角色）</span><strong>PS不是异常时才出现的组件</strong>：即便交换机完成了全部SUM，聚合结果仍要送到PS；由PS保存最终结果并负责广播参数ACK来释放交换机槽位。Overview先展示“与原系统相比执行方式怎样改变”，再进入寄存器与位图细节。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（写作借鉴）</span><strong>图7的“一图言之”表达形式</strong>：对于交换机内包含槽位分配、碰撞旁路、一级/二级位图切换、查重累加、计数判断与ACK释放的复杂流程，作者用Figure 7一张伪代码流程图完整呈现，描述复杂状态机时非常值得参考这种“一图言之”的形式。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（协议闭环）</span><strong>为什么分别写Switch Logic、End Host Logic与Reliability/CC？</strong></p>
+<ul>
+<li><strong>Switch Logic回答局部动作</strong>：单包到来时检查哪个slot、是否碰撞、是否重复、是否凑齐聚合；</li>
+<li><strong>End Host Logic回答端到端完成</strong>：Worker如何发送与重传，PS如何接收原始或部分聚合结果并反馈新索引；</li>
+<li><strong>Reliability / CC解释异常与资源压力</strong>：构成“<strong>本地执行→跨节点协作→异常下继续完成</strong>”的完整闭环。</li>
+</ul>
+</div>
+</div>
+<p class="atp-caution">原文把交换机状态称为soft-state，但这不等于系统无状态，也不等于丢失后无成本。它的恢复依赖Worker和PS的协议配合。</p>
+</aside>
+</div><h3 id="3-2-figure-5-6-包头携带方向-交换机保存进度"><a class="heading-anchor" href="#3-2-figure-5-6-包头携带方向-交换机保存进度" aria-label="Link to this section">#</a>3.2 Figure 5–6：包头携带方向，交换机保存进度</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.6顶部· Figure 5 (ATP 16-Byte包头格式)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=6" target="_blank" rel="noreferrer">PDF p.6 · Fig.5 ↗</a></div><figure><img src="figures/30-fig5-header.webp" alt="原论文Figure 5：16-byte ATP header。" loading="lazy"><figcaption>原论文Figure 5：16-byte ATP header。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.6右栏· Figure 6 (交换机Aggregator内存布局)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=6" target="_blank" rel="noreferrer">PDF p.6 · Fig.6 ↗</a></div><figure><img src="figures/38-fig6-memory.webp" alt="原论文Figure 6：聚合槽中的数据、成员、身份与时间状态。" loading="lazy"><figcaption>原论文Figure 6：聚合槽中的数据、成员、身份与时间状态。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">05 /包头四类信息与交换机聚合槽状态</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（包头设计）</span><strong>Figure 5（16-Byte ATP Header）携带的四类信息</strong>：</p>
+<ul>
+<li><strong>是谁</strong>：<code>jobIDAndSequenceNumber</code>区分作业与梯度片段；</li>
+<li><strong>去哪里</strong>：<code>aggregatorIndex</code>指向交换机中的聚合槽；</li>
+<li><strong>该等谁</strong>：两组<code>bitmap0/1</code>与<code>fanInDegree0/1</code>分别表达两级聚合成员，<code>edgeSwitchIdentifier</code>选择当前聚合层；</li>
+<li><strong>发生了什么</strong>：<code>collision</code>、<code>resend</code>、<code>ECN</code>、<code>overflow</code>与<code>isAck</code>标志表达控制事件。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（slot状态）</span><strong>Figure 6将包头方向与交换机本地状态接起来</strong>：<code>value</code>保存部分和，<code>bitmap / counter</code>跟踪已到达贡献，<code>identifier</code>区分作业片段，<code>timestamp</code>记录最近一次聚合更新。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（物理边界）</span><strong>动态分配的是槽的使用权，系统规模同时受元数据位宽限制</strong>：物理register池在交换机启动时固定建立，后续Job动态占用和复用固定槽位；同时由于单层寄存器仅支持<code>32-bit</code>值，两级one-hot位图的编码上限为<code>32 × 32 = 1024</code>台主机（<code>n-bit</code>对应<code>n²</code> Workers）。</p>
+</div>
+</div>
+<p class="atp-caution">注意：`bitmap0`的一位表示本机架组内Worker；`bitmap1`的一位表示第二级的远端机架输入组或本地Worker，两者不是两个“全局Worker位图”。</p>
+</aside>
+</div><h2 id="4-placement-跨机架两级聚合-rss-vs-atp"><a class="heading-anchor" href="#4-placement-跨机架两级聚合-rss-vs-atp" aria-label="Link to this section">#</a>4. Placement：跨机架两级聚合（RSS vs. ATP）</h2>
+<blockquote>
+<p><strong>本节核心逻辑链</strong>：<code>单机架聚合（RSS）仍向 PS 发送多份结果</code> → <code>核心网 ECMP 动态路由耦合代价过高</code> → <code>Worker ToR（一级）+ PS ToR（二级）必经点聚合</code> → <code>PS 侧接收流量缩减 66%（Fig. 9）</code></p>
+</blockquote>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.6右下– p.7左栏· §3.4 Inter-rack Aggregation</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=6" target="_blank" rel="noreferrer">PDF p.6–7 · §3.4 ↗</a></div><figure><img src="figures/08-inter-rack.webp" alt="§3.4原文：跨机架聚合与内部路由变化的权衡。" loading="lazy"><figcaption>§3.4原文：跨机架聚合与内部路由变化的权衡。</figcaption></figure>
+<figure><img src="figures/08b-inter-rack-cont.webp" alt="§3.4跨页续文：两级位图与汇聚点扩展条件。" loading="lazy"><figcaption>§3.4跨页续文：两级位图与汇聚点扩展条件。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📐逻辑对比重绘图：Rack-Scale Solution (RSS) vs. ATP Inter-rack Aggregation</span><span>对应§3.4 &amp; §5.2.2</span></div><figure><img src="figures/08c-rss-vs-atp-diagram.webp" alt="RSS与ATP跨机架两级聚合的数据流对比。" loading="lazy"><figcaption>RSS与ATP跨机架两级聚合的数据流对比。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.11右栏– p.12左上· §5.2.2 Inter-rack Performance &amp; Figure 9</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=11" target="_blank" rel="noreferrer">PDF p.11–12 · Fig.9 ↗</a></div><figure><img src="figures/39-fig9-topology.webp" alt="原论文Figure 9：PS接在SW2，六个Worker分布在三个机架。" loading="lazy"><figcaption>原论文Figure 9：PS接在SW2，六个Worker分布在三个机架。</figcaption></figure>
+<figure><img src="figures/09-rss-evidence.webp" alt="跨机架评估原文：测量PS接收流量，而非真实吞吐。" loading="lazy"><figcaption>跨机架评估原文：测量PS接收流量，而非真实吞吐。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">06 /跨机架两级聚合（Inter-rack Aggregation）对比单机架方案（RSS）</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（核心概念区分）</span><strong>Inter-rack Aggregation vs. Rack-Scale Solution (RSS)</strong>：ATP在这里专门区分了跨机架聚合与单机架方案（RSS） =&gt;这种Inter-rack Aggregation是指<strong>在PS所处的机架ToR交换机（SW2）上再进行一次二级聚合</strong>，从而减少需要将非最终聚合数据传输给PS的份数，避免数据搬运造成的带宽浪费。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（RSS的问题）</span><strong>只做本地ToR聚合（左图RSS）的代价</strong>：Rack 0（<code>W0=1, W1=2</code>）在<code>SW0</code>算出<code>SUM=3</code>，Rack 1（<code>W2=3, W3=4</code>）在<code>SW1</code>算出<code>SUM=7</code>，Rack 2（<code>W4=5, W5=6</code>）在<code>SW2</code>算出<code>SUM=11</code> =&gt;三份partial结果仍分别穿过<code>SW2</code>进入PS（<strong>发送三份数据3、7、11</strong>），在<code>SW2 → PS</code>最后一跳产生<code>3×</code>流量。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（核心网权衡）</span><strong>为什么不把聚合上移到Spine核心交换机？</strong> =&gt;网络内部的ECMP等动态路由变化会改变某台中间交换机实际看到哪些梯度流（无法天然确定自己的fan-in），迫使路由与聚合槽分配深度协同，极大增加协议复杂度。
+(md修改：这里需要解释或者画图说明一下什么是spine核心交换机)</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（ATP两级设计）</span><strong>Worker ToR做第一级+ PS ToR做第二级（右图ATP）</strong> =&gt;远端<code>SW0 (SUM=3)</code>和<code>SW1 (SUM=7)</code>的结果到达必经点<code>SW2</code>后，与本机架<code>W4=5, W5=6</code>在<code>SW2</code>内直接合并为<code>3+7+5+6 = 21</code>，<strong>仅向PS发送一份数据（21）</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（实验闭环）</span><strong>设计点、对照与指标直接相连（§5.2.2 Figure 9）</strong> =&gt; “为什么增加第二级聚合”对应“只做本地聚合的RSS基线”，再对应“PS接收流量减少66%（由三份变一份）”。</p>
+</div>
+</div>
+<p class="atp-caution">这项跨机架实验使用Tofino软件模拟器（因实验室只有一台物理Tofino交换机）。原文明确说明模拟器不能测真实吞吐；3×指PS接收流量之比，不能转写成训练速度提高3×。</p>
+</aside>
+</div><h2 id="5-reliability-让不完整的聚合安全退出"><a class="heading-anchor" href="#5-reliability-让不完整的聚合安全退出" aria-label="Link to this section">#</a>5. Reliability：让不完整的聚合安全退出</h2>
+<blockquote>
+<p><strong>本节核心逻辑链</strong>：<code>早到分片碰撞直达 PS + 晚到分片留守交换机引发停滞</code> → <code>端侧超时重传解当前停滞 + PS Rehash 改未来映射</code> → <code>一级细粒度 Bitmap 发 Partial / 二级粗粒度 1-bit 透传 PS（Fig. 17）</code> → <code>Timestamp 访问驱动回收</code></p>
+</blockquote>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.8左右栏· §3.6 End Host Logic (碰撞停滞与Rehash反馈)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=8" target="_blank" rel="noreferrer">PDF p.8 · §3.6 ↗</a></div><figure><img src="figures/31-collision-stall.webp" alt="§3.6：先到的贡献绕过交换机，后到的贡献却留在交换机，形成停滞。" loading="lazy"><figcaption>§3.6：先到的贡献绕过交换机，后到的贡献却留在交换机，形成停滞。</figcaption></figure>
+<figure><img src="figures/32-rehash-feedback.webp" alt="§3.6右栏续文：PS通过返回参数包反馈新的aggregator index。" loading="lazy"><figcaption>§3.6右栏续文：PS通过返回参数包反馈新的aggregator index。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.9左栏&amp; p.19 · §3.7 Packet Retransmission &amp; Figure 17</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=9" target="_blank" rel="noreferrer">PDF p.9 / p.19 ↗</a></div><figure><img src="figures/33-recovery-two-levels.webp" alt="§3.7续页：第一级发送partial，第二级放弃状态并转发重传。" loading="lazy"><figcaption>§3.7续页：第一级发送partial，第二级放弃状态并转发重传。</figcaption></figure>
+<figure><img src="figures/40-fig17-recovery.webp" alt="原论文Figure 17：重复与非重复重传最终都进入发送和释放分支。" loading="lazy"><figcaption>原论文Figure 17：重复与非重复重传最终都进入发送和释放分支。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.9左栏· §3.7 Timestamp超时槽位回收</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=9" target="_blank" rel="noreferrer">PDF p.9 · §3.7 ↗</a></div><figure><img src="figures/34-timeout-reclamation.webp" alt="§3.7：由parameter packet访问触发的超时回收。" loading="lazy"><figcaption>§3.7：由parameter packet访问触发的超时回收。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">07 /碰撞停滞、两级重传恢复与超时槽位回收</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（异常场景）</span><strong>先写出会卡住的具体情形（Collision Stall）</strong>：早来的<code>W0/W1</code>因目标slot忙而打上collision直达PS；晚来的<code>W2/W3</code>到达时该slot恰好空闲并留在交换机内聚合=&gt;交换机仍在等凑齐四份贡献，但前两份已经绕过交换机去了PS，形成停滞。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（双重机制）</span><strong>重传解决当前片段，Rehash改善未来映射</strong>：</p>
+<ul>
+<li><strong>超时重传（Retransmission）</strong>：将停滞纳入丢包恢复，由端侧超时重发<code>resend=1</code>梯度包，最终在PS补齐计算；</li>
+<li><strong>重哈希（Rehash）</strong>：PS根据collision标志计算并反馈新<code>aggregatorIndex</code>，让Worker在后续迭代避开容易冲突的位置。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（两级恢复差异）</span><strong>两级恢复不同，来自两级状态粒度不同（对应Figure 17）</strong>：</p>
+<ul>
+<li><strong>第一级（Worker ToR）</strong>：保存组内细粒度Worker <code>bitmap0</code>，能判断某个重传贡献是否已计入，因此直接送出已有partial并释放slot（注：附录A.1 Fig. 17补齐了重要分支——即使重传包已被计入，同样会发送已有partial并释放槽位）；</li>
+<li><strong>第二级（PS ToR）</strong>：对每个第一级机架组只保留<code>1 bit</code>，不知道该组内部具体哪些Worker已包含在数值中，因此直接清空放弃该层状态，把重传包透传交给PS。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（槽位回收）</span><strong>Timestamp的活性用途</strong>：Job异常退出后，PS可能永远不再返回匹配ACK。ATP在处理后续访问该index的报文时，顺便检查对应状态<code>timestamp</code>是否超时，以访问驱动的方式回收遗留slot。</p>
+</div>
+</div><p class="atp-caution">Bitmap能发现重叠，但不能拆开已累加的数值（例如<code>sum(W0,W1,W2)</code>不能仅凭bitmap减去W0），因此必须结合PS侧去重与端到端重传共同保证正确性。</p>
+</aside>
+</div><h2 id="6-congestion-control-保留聚合过程中的拥塞信号"><a class="heading-anchor" href="#6-congestion-control-保留聚合过程中的拥塞信号" aria-label="Link to this section">#</a>6. Congestion Control：保留聚合过程中的拥塞信号</h2>
+<blockquote>
+<p><strong>本节核心逻辑链</strong>：<code>多 Worker 同步等待污染端到端 RTT</code> → <code>改用交换机 ECN 并在聚合槽按位 OR 合并保留</code> → <code>随 Parameter ACK 广播回全体 Worker 驱动 AIMD 调窗</code> → <code>结合 3 个乱序 ACK 协同降速</code></p>
+</blockquote>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.9左栏底–右栏顶· §3.7 Congestion Control (ECN合并与窗口调节)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=9" target="_blank" rel="noreferrer">PDF p.9 · §3.7 ↗</a></div><figure><img src="figures/11-ecn.webp" alt="原文：从aggregator竞争，到RTT、ECN与拥塞反馈。" loading="lazy"><figcaption>原文：从aggregator竞争，到RTT、ECN与拥塞反馈。</figcaption></figure>
+<figure><img src="figures/11b-ecn-cont.webp" alt="§3.7右栏续文：ECN经parameter packet返回所有Worker。" loading="lazy"><figcaption>§3.7右栏续文：ECN经parameter packet返回所有Worker。</figcaption></figure>
+<figure><img src="figures/12-aimd.webp" alt="原文：初始窗口、slow-start threshold与减半规则。" loading="lazy"><figcaption>原文：初始窗口、slow-start threshold与减半规则。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">08 /拥塞控制逻辑链：弃用同步污染的RTT，采用ECN按位或合并反馈</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（信号选择）</span><strong>为什么不采用TCP的RTT方式进行控制？</strong> =&gt; ATP的拥塞控制没有采用TCP中的RTT，主要是<strong>考虑到了多worker聚合过程中的同步等待延迟</strong>（Worker从发出梯度到收到Parameter ACK还要等待其他Worker的贡献；某个Worker晚发送会让早发送者测得很长RTT，即使网络没有任何拥塞）。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（ECN合并）</span><strong>采用交换机ECN标识拥塞，且在聚合时不能把标记“吃掉”</strong> =&gt;启用交换机ECN标记作为主拥塞信号；每份到达分片包的ECN位通过按位或（<code>0 OR 1 OR 0 = 1</code>）合并进aggregator的ECN位（对应图7步骤⑦），只要任意一个输入分支经历拥塞，聚合输出就保留该标记。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（窗口调节）</span><strong>aggregator将ECN标记最终传递回全体workers，调节端侧发送窗口size控制速率</strong> =&gt;合并后的ECN随聚合结果到达PS，再复制到广播给所有Worker的Parameter ACK包中，使同一Job的所有Worker看到一致的反馈并调节在途发送窗口（初始窗口<code>200 packets</code>，低于阈值每ACK <code>+1 MTU</code>，高于阈值每窗口<code>+1 MTU</code>，收到ECN则窗口减半并更新阈值）=&gt;解决多租户拥塞问题。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（丢包协同）</span><strong>结合three out-of-order ACKs协同降速</strong> =&gt;同时说明当端侧收到<strong>three out-of-order ACKs</strong>时，表明链路可能出现了拥塞丢包问题，此时同样触发发送窗口减半、调节发包速率，减轻链路压力。</p>
+</div>
+</div>
+<p class="atp-caution">ECN是collective-level的拥塞通知；乱序ACK参与丢失检测并触发降窗。ECN自身不负责补齐丢失贡献，数据恢复仍由重传协议完成。</p>
+</aside>
+</div><h2 id="7-implementation-硬件限制突破与端侧系统优化"><a class="heading-anchor" href="#7-implementation-硬件限制突破与端侧系统优化" aria-label="Link to this section">#</a>7. Implementation：硬件限制突破与端侧系统优化</h2>
+<blockquote>
+<p><strong>本节核心逻辑链</strong>：<code>开篇确立“P4 协议逻辑 + 端侧小包卸载”双主线</code> → <code>Two-pass 突破解析上限至 306B</code> → <code>利用 Bitmap 置位幂等性完成单次 ALU 读写</code> → <code>BytePS 插件 + TSO/MP-QP（省 512× 内存）+ 多线程中心化调度</code> → <code>公平 Baseline 与逐项消融（Fig. 19）</code></p>
+</blockquote>
+<h3 id="7-1第四章主线写法-交换机限制突破与端侧优化组合"><a class="heading-anchor" href="#7-1第四章主线写法-交换机限制突破与端侧优化组合" aria-label="Link to this section">#</a>7.1第四章主线写法、交换机限制突破与端侧优化组合</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.10左栏· §4 Implementation (Programmable Switch / Two-pass / Control logic)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=10" target="_blank" rel="noreferrer">PDF p.10左栏· §4 ↗</a></div><figure><img src="figures/13-implementation.webp" alt="Implementation开头与two-pass描述。" loading="lazy"><figcaption>Implementation开头与two-pass描述。</figcaption></figure>
+<figure><img src="figures/14-rmw.webp" alt="原文关于bitmap重排与跨packet分配／释放的描述。" loading="lazy"><figcaption>原文关于bitmap重排与跨packet分配／释放的描述。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.10右栏· §4 End-Host Networking Stack &amp; Baseline Implementation</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=10" target="_blank" rel="noreferrer">PDF p.10右栏· §4 ↗</a></div><figure><img src="figures/15-host-offload.webp" alt="原文：BytePS plugin、TSO、MP-QP与端侧多线程负载均衡。" loading="lazy"><figcaption>原文：BytePS plugin、TSO、MP-QP与端侧多线程负载均衡。</figcaption></figure>
+<figure><img src="figures/44-baseline-two-pass.webp" alt="§4 Baseline Implementation：两端同用TSO / MP-QP，SwitchML基线未加two-pass。" loading="lazy"><figcaption>§4 Baseline Implementation：两端同用TSO / MP-QP，SwitchML基线未加two-pass。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.21右上· Appendix §D.1 Figure 19 (端侧与交换机优化逐项消融)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=21" target="_blank" rel="noreferrer">PDF p.21 · Fig.19 ↗</a></div><figure><img src="figures/41-fig19-offloads.webp" alt="原论文Figure 19：依次启用TSO、MP-QP、two-pass的吞吐变化。" loading="lazy"><figcaption>原论文Figure 19：依次启用TSO、MP-QP、two-pass的吞吐变化。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">09 /第四章Implementation这一页的写法都值得学习</p>
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（(开篇结构)）</span><strong>第四章Implementation开头值得学习：再一次强调了本工作的组成</strong> =&gt;开篇第一句直接拎出实现的两部分核心：<code>ATP&#39;s implementation consists of (i) the protocol logic on P4 switches and end host, and (ii) hardware offloads to optimize small-packet performance.</code></p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（(交换机实现)）</span><strong>给出关键实现细节描述，不影响主线阅读但能勾起读者兴趣的细节放到附录</strong>：</p>
+<ul>
+<li><strong>Two-pass突破解析限制</strong>：前人单次过流水线（single pass）包长受限于<code>184B</code>；ATP混用<code>resubmit</code>与<code>recirculate</code>实现<strong>two-pass</strong>，将最大包长提升至<code>306B</code>（留出4个switch stages给控制逻辑），并把流水线排布细节引向附录<code>§C</code>；</li>
+<li><strong>突破单次寄存器访问限制（Control logic）</strong>：利用向bitmap写1的幂等性（<code>old_bitmap OR packet_bitmap</code>），在一次stateful ALU操作中把旧bitmap输出到metadata并同时写回置位后的新值，后续读取metadata判断是否重复并决定是否执行SUM（核对作者公开代码<a class="external-reference" href="https://github.com/in-ATP/ATP/blob/main/p4src/includes/common.p4#L27-L35" target="_blank" rel="noreferrer"><code>common.p4</code></a>确认）；同时用梯度包分配槽位、用参数包释放槽位（跨包拆分访问）。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（(协议栈嵌入)）</span><strong>介绍端侧协议栈的适配和嵌入：这里讲和其他工作如何集成、如何便于用户使用</strong> =&gt;将ATP实现为<strong>BytePS plugin</strong>，无缝接入PyTorch、TensorFlow和MXNet，在Worker与PS通信时拦截<code>Push</code>和<code>Pull</code>调用，用户无需修改训练应用代码。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（(系统级优化)）</span><strong>从系统的角度讲了小报文的处理优化，这些确实都是实现细节，适合放到第四章讲解=&gt;同时这里还介绍了网卡对于收发包的作用，以及多线程的作用</strong>：</p>
+<ul>
+<li><strong>网卡硬件卸载（TSO + MP-QP）</strong>：发送端利用<code>TSO</code>将分片卸载至NIC并通过大块DMA提升PCIe带宽；接收端利用<code>MP-QP</code>让单个描述符指定多个连续报文缓冲，将NIC内存占用降低至少<code>512×</code>，大幅减少收发调用与描述符DMA次数；</li>
+<li><strong>多线程负载均衡调度器</strong>：为了防止多线程处理报文时负载不均，每个Worker设置一个中心化调度器（centralized scheduler），维护各线程的总负载，收到待发送tensor时提取其大小并分配给当前负载最轻的线程。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（公平对照与消融）</span><strong>讲清楚Baseline的实现配置，突出对照的公平实现</strong> =&gt;在<code>Baseline Implementation</code>中专门交代：复现的SwitchML基线在端侧同样开启了TSO和MP-QP（仅未加交换机two-pass，包长为<code>180B</code>）；对于不易实现的baseline，可以在附录说明细节，并通过附录<code>§D.1</code>（Figure 19：TSO <code>3×</code>、MP-QP <code>1.47×</code>、two-pass <code>1.3×</code>，总计约<code>6×</code>）把工程优化的独立贡献归因清楚。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="7-2-overflow-浮点量化与饱和溢出回退"><a class="heading-anchor" href="#7-2-overflow-浮点量化与饱和溢出回退" aria-label="Link to this section">#</a>7.2 Overflow：浮点量化与饱和溢出回退</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.9右栏– p.10左上· §3.8 Dealing with Floating Point Numbers</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=9" target="_blank" rel="noreferrer">PDF p.9–10 · §3.8 ↗</a></div><figure><img src="figures/35-saturation-recovery.webp" alt="§3.8：数值饱和后保留异常，继续完成贡献跟踪。" loading="lazy"><figcaption>§3.8：数值饱和后保留异常，继续完成贡献跟踪。</figcaption></figure>
+<figure><img src="figures/36-saturation-cont.webp" alt="§3.8跨页续文：所有Worker向PS重发原始浮点梯度。" loading="lazy"><figcaption>§3.8跨页续文：所有Worker向PS重发原始浮点梯度。</figcaption></figure>
+<figure><img src="figures/16-overflow-cost.webp" alt="原文将overflow correction与packet-loss recovery类比。" loading="lazy"><figcaption>原文将overflow correction与packet-loss recovery类比。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">10 /浮点转整数（INT32）与饱和溢出恢复论证链</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（数值与控制分离）</span><strong>数值冻结，但完成状态继续走</strong>：ATP把FP32乘以<code>10^8</code>后量化为INT32。一旦累加溢出，交换机用饱和值（saturated value）冻结异常，不再相信该槽数值结果；但<strong>bitmap与完成计数仍继续正常推进</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（端侧重算）</span><strong>凑齐后回退端侧浮点求和</strong>：当完成条件达到后，PS收到带<code>overflow</code>标志的报文，随即请求该片段的原始FP32梯度，由所有Worker重传并在端侧重新精确求和。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（论证链条）</span><strong>学论证方式，也看类比边界</strong>：作者先承认最坏情况下要重传整个iteration的梯度→再引用低丢包率（<code>&lt; 0.1%</code>）下训练吞吐无退化的实验→最后指出所测主流模型训练中实际overflow频率极低（<code>&lt; 0.1%</code>），形成“<strong>异常代价→恢复实验→实际发生频率→应用总体收益</strong>”的完整论证链。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="8-evaluation-围绕系统设计开展实验与消融验证"><a class="heading-anchor" href="#8-evaluation-围绕系统设计开展实验与消融验证" aria-label="Link to this section">#</a>8. Evaluation：围绕系统设计开展实验与消融验证</h2>
+<blockquote>
+<p><strong>本节核心逻辑链</strong>：<code>6 个评估问题导引</code> → <code>Metrics / Baselines (BytePS NtoN) / Workloads (VGG16 vs. 4MB Microbenchmark)</code> → <code>Dumbbell 双任务 TTA（Fig. 12）</code> → <code>PTA 容量标定与 33% 压测（Fig. 13–14）</code> → <code>50% 槽位 8-to-1 Incast 下 CC 消融（Fig. 15）</code> → <code>非 ATP 背景流 Max-Min 公平共存（Fig. 16 &amp; Fig. 20）</code></p>
+</blockquote>
+<h3 id="8-1实验章节导引与metrics-baselines-workloads配置"><a class="heading-anchor" href="#8-1实验章节导引与metrics-baselines-workloads配置" aria-label="Link to this section">#</a>8.1实验章节导引与Metrics / Baselines / Workloads配置</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.10右栏下· §5 Evaluation (6个核心评估问题与章节映射)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=10" target="_blank" rel="noreferrer">PDF p.10 · §5 ↗</a></div><figure><img src="figures/29-evaluation-questions.webp" alt="Evaluation开头列出六个问题，并指向对应小节。" loading="lazy"><figcaption>Evaluation开头列出六个问题，并指向对应小节。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.11左栏· §5.1 Experimental Setup (Metrics / Baselines / Workloads)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=11" target="_blank" rel="noreferrer">PDF p.11 · §5.1 ↗</a></div><figure><img src="figures/19-metrics.webp" alt="三个指标：training throughput、TTA、aggregation throughput。" loading="lazy"><figcaption>三个指标：training throughput、TTA、aggregation throughput。</figcaption></figure>
+<figure><img src="figures/17-baselines.webp" alt="三类baseline：BytePS、SwitchML、Horovod。" loading="lazy"><figcaption>三类baseline：BytePS、SwitchML、Horovod。</figcaption></figure>
+<figure><img src="figures/18-workloads.webp" alt="真实模型与持续4 MB tensor微基准。" loading="lazy"><figcaption>真实模型与持续4 MB tensor微基准。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">11 / Evaluation展示清晰的实验对比思路+对应章节</p>
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（评估主线）</span><strong>Evaluation开篇通过6个问题展示清晰的实验对比思路+对应的章节</strong>：先列出要回答的6个核心问题（单任务性能<code>§5.2.1</code>、跨机架<code>§5.2.2</code>、恢复开销<code>§5.2.3</code>、量化与精度<code>§5.3</code>、多租户动态分配<code>§5.4</code>、拥塞控制<code>§5.5</code>），让读者在看图前先清楚每一节为什么存在。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Metric）</span><strong>三项核心性能指标</strong>：</p>
+<ul>
+<li><strong>Training throughput</strong>：面向DT任务的训练吞吐（按Worker数归一化的<code>images/sec</code>）；</li>
+<li><strong>Time-to-accuracy (TTA)</strong>：达到目标或最高精度所需的训练时间（证明加速同时不损模型收敛质量）；</li>
+<li><strong>Aggregation throughput</strong>：面向微基准的聚合吞吐（每个Worker每秒收到的参数总字节数<code>Gbps</code>）。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Baselines）</span><strong>第五章的Baseline详细说明</strong>：</p>
+<ul>
+<li><strong>BytePS（TCP / RoCEv2 RDMA）</strong>：同为Worker–PS架构，除默认<code>Nto1</code>（单PS）外，还专门优化配置了与Worker数相等的<strong>多PS模式（<code>NtoN</code>，将N个PS与N个Worker同机共置）</strong>以消除单PS接收瓶颈；</li>
+<li><strong>SwitchML</strong>：作者公平复现的单任务在网聚合SOTA基线；</li>
+<li><strong>Horovod（TCP / RDMA）</strong>：代表Ring All-Reduce架构的主流基线。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Workloads）</span><strong>Workload的选择说明</strong>：</p>
+<ul>
+<li><strong>真实模型</strong>：评估7种主流模型，重点以<strong>VGG16（528MB，代表网络通信密集型）</strong>和<strong>ResNet50（98MB，代表计算密集型）</strong>作为核心代表（默认8 Workers）；</li>
+<li><strong>合成微基准（Aggregation Microbenchmark）</strong>：每个Worker持续反复传输等大小<code>4MB</code> tensor（BytePS支持的最大尺寸），<strong>始终有数据发送、没有任何&quot;off&quot;阶段</strong>，用于剥离计算间隔测试极限持续聚合性能。</li>
+</ul>
+</div>
+</div>
+</aside>
+</div><h3 id="8-2-figure-12-多任务dumbbell拓扑下的端到端tta验证"><a class="heading-anchor" href="#8-2-figure-12-多任务dumbbell拓扑下的端到端tta验证" aria-label="Link to this section">#</a>8.2 Figure 12：多任务Dumbbell拓扑下的端到端TTA验证</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.12右栏&amp; p.13右上· §5.3.2 Multi-job TTA &amp; Figure 12</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=12" target="_blank" rel="noreferrer">PDF p.12–13 · Fig.12 ↗</a></div><figure><img src="figures/20-tta-dumbbell.webp" alt="原文：两个VGG16 Job，各3 Workers，一台交换机模拟dumbbell。" loading="lazy"><figcaption>原文：两个VGG16 Job，各3 Workers，一台交换机模拟dumbbell。</figcaption></figure>
+<figure><img src="figures/21-fig12-tta.webp" alt="原论文Figure 12；曲线展示Top-5 accuracy随时间变化。" loading="lazy"><figcaption>原论文Figure 12；曲线展示Top-5 accuracy随时间变化。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📐逻辑拓扑重绘图：标准Dumbbell瓶颈拓扑vs. ATP单交换机双Job跨侧放置示意</span><span>对应§5.3.2</span></div><figure><img src="figures/20b-dumbbell-topology.webp" alt="标准Dumbbell拓扑与ATP双Job逻辑拓扑示意图。" loading="lazy"><figcaption>标准Dumbbell拓扑与ATP双Job逻辑拓扑示意图。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">12 /多任务Dumbbell瓶颈模拟与端到端TTA表现</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（实验构造）</span><strong>单台交换机模拟双Job争用100Gbps瓶颈的Dumbbell拓扑</strong>：同时运行2个VGG16任务（每个Job各3个Workers + 1个PS），将每个Job的1个Worker与另外2个Workers分隔在瓶颈两侧，使两个Job的跨侧流量共享一条<code>100Gbps</code>链路。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（拓扑理解）</span><strong>结合逻辑结构图理解单交换机放置（见左下重绘图）</strong>：</p>
+<ul>
+<li><strong>标准Dumbbell拓扑</strong>：左右各有一台交换节点（<code>R1</code>、<code>R2</code>），所有跨侧流量共享中间<code>100Gbps</code> Bottleneck链路；</li>
+<li><strong>ATP单交换机下的双Job逻辑结构</strong>：对于<strong>Job A</strong>，<code>worker 1</code>在左、<code>worker 2/3</code>在右（<code>1 : 2</code>跨侧）；对于<strong>Job B</strong>，<code>worker 2/3</code>在左、<code>worker 1</code>在右（<code>2 : 1</code>跨侧），两幅图中的<code>switch</code>为同一台物理交换机。</li>
+</ul>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（实验结论）</span><strong>Figure 12端到端收敛加速</strong>：在双任务共享瓶颈下，ATP的Job 1与Job 2达到<code>75%</code> Top-5精度的训练时间（TTA）显著短于BytePS NtoN RDMA与Horovod RDMA。</p>
+</div>
+</div>
+<p class="atp-caution">注：共享同一台物理switch不自动等于共享100G物理链路，具体取决于哪条端口/回环链路由两Job共同经过；Figure 12提供的是端到端TTA证据。</p>
+</aside>
+</div><h3 id="8-3-figure-13a-13b-动态共享vs-静态分区与动态hash收敛过程"><a class="heading-anchor" href="#8-3-figure-13a-13b-动态共享vs-静态分区与动态hash收敛过程" aria-label="Link to this section">#</a>8.3 Figure 13a &amp; 13b：动态共享vs.静态分区与动态Hash收敛过程</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.12右栏&amp; p.13左上· §5.4.1 Dynamic vs. Static Sharing &amp; Figure 13(a)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=12" target="_blank" rel="noreferrer">PDF p.12–13 · Fig.13a ↗</a></div><figure><img src="figures/22a-sec541-text.webp" alt="§5.4.1 Dynamic vs. Static Sharing原文批注：PTA标定与动态共享。" loading="lazy"><figcaption>§5.4.1 Dynamic vs. Static Sharing原文批注：PTA标定与动态共享。</figcaption></figure>
+<figure><img src="figures/22-fig13a-throughput.webp" alt="原论文Figure 13a：横轴PTA比例，纵轴训练吞吐。" loading="lazy"><figcaption>原论文Figure 13a：横轴PTA比例，纵轴训练吞吐。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.13左栏&amp;中上· §5.4.1 Figure 13(b)正文与PS回退聚合频次图</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=13" target="_blank" rel="noreferrer">PDF p.13 · Fig.13b ↗</a></div><figure><img src="figures/23a-fig13b-text.webp" alt="§5.4.1 Figure 13b原文批注：500ms后重哈希收敛。" loading="lazy"><figcaption>§5.4.1 Figure 13b原文批注：500ms后重哈希收敛。</figcaption></figure>
+<figure><img src="figures/23-fig13b-collisions.webp" alt="原论文Figure 13b：每10 ms的PS aggregation次数。" loading="lazy"><figcaption>原论文Figure 13b：每10 ms的PS aggregation次数。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">13 / PTA容量标定、33%资源受限测试与动态Hash碰撞收敛</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（对比基线）</span><strong>ATP动态共享vs. SwitchML平均静态分区扩展</strong>：同时启动3个相同的VGG16任务连接至一台交换机；ATP动态共享所有aggregator（任一任务进入off阶段时其槽位可供其他任务借用），而静态方案对SwitchML做平均静态分区扩展（每个任务固定分配<code>1/3</code>的aggregators）。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（标定PTA）</span><strong>先找到让3个job中每个job达到最大训练吞吐的aggregator数量（<code>100% PTA = 1980</code>）</strong> =&gt;我认为这应该是对每个job单独调整aggregator的数量进行测试标定（在实际多租户场景下，不同任务所需要的aggregator数量应当不同）。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（物理机理）</span><strong>为什么aggregator数量能决定最大吞吐？</strong> =&gt;因为<strong>aggregator的数量决定了交换机并发处理报文聚合的程度（在途并发窗口）</strong>，所以调整aggregator的数量可以使得交换机到PS的链路打满带宽。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（33%压测）</span><strong>将总预算从100% PTA调低到33% PTA（<code>660</code>个）</strong> =&gt;这里调整到<code>33%</code>应该是为了<strong>制造资源不足的竞争场景，从而体现动态利用的优势</strong>；使用<code>33%</code>恰好说明<strong>当前的交换机资源只够1个job打满带宽</strong>，取值比较合理（不过单看Figure 13a这张汇总折线图本身还略显简单）。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Hash收敛）</span><strong>Figure 13(b)：展示动态场景下因Hash碰撞回退到PS聚合的频次变化</strong> =&gt;展示了在<code>100% PTA</code>下启动时因hash冲突回退到PS聚合的频次，以及随后由<strong>动态hash调整（hash-collision avoidance）</strong>在约<code>500ms</code>（横轴刻度50，单位<code>10ms</code>）后逐渐降低至0的过程，体现了动态hash重分配的效果。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（读图存疑）</span><strong>Figure 13(b)未交代清楚的细节</strong>：这里原文没具体介绍该子图对应哪个workload阶段下的多job（初看容易猜测是否只是简单的allreduce-microbenchmark），而且<strong>没介绍这里的多job是同时同步启动还是异步启动，对于横轴<code>35</code>（即<code>350ms</code>）左右的hash碰撞突发尖峰也没有给出解释</strong>。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="8-4-figure-13c-figure-14-资源不足下的动态复用时序与多job消融实验"><a class="heading-anchor" href="#8-4-figure-13c-figure-14-资源不足下的动态复用时序与多job消融实验" aria-label="Link to this section">#</a>8.4 Figure 13c &amp; Figure 14：资源不足下的动态复用时序与多Job消融实验</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.13左栏&amp;右上· §5.4.1 Figure 13(c)正文与33% PTA在网聚合时序图</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=13" target="_blank" rel="noreferrer">PDF p.13 · Fig.13c ↗</a></div><figure><img src="figures/24a-fig13c-text.webp" alt="§5.4.1 Figure 13c正文：当一个Job进入off阶段时其余Job的在网聚合次数上升。" loading="lazy"><figcaption>§5.4.1 Figure 13c正文：当一个Job进入off阶段时其余Job的在网聚合次数上升。</figcaption></figure>
+<figure><img src="figures/24-fig13c-sharing.webp" alt="原论文Figure 13c：33% PTA时，三个Job的在网聚合次数。" loading="lazy"><figcaption>原论文Figure 13c：33% PTA时，三个Job的在网聚合次数。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.13左下–右中· §5.4.2 Effectiveness of ATP's Hashing Scheme &amp; Figure 14</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=13" target="_blank" rel="noreferrer">PDF p.13 · Fig.14 ↗</a></div><figure><img src="figures/25a-sec542-text.webp" alt="§5.4.2正文：Hash-based dynamic、Linear-based dynamic与Static的扩展对比。" loading="lazy"><figcaption>§5.4.2正文：Hash-based dynamic、Linear-based dynamic与Static的扩展对比。</figcaption></figure>
+<figure><img src="figures/25-fig14-hashing.webp" alt="原论文Figure 14：不同Job数下的hashing对照。" loading="lazy"><figcaption>原论文Figure 14：不同Job数下的hashing对照。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">14 / 33% PTA下的动态复用时序（Fig. 13c）与多Job Hash消融（Fig. 14）</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（动态性展示）</span><strong>Figure 13(c)：说明动态场景下资源不足（33% PTA）时每个job的aggregation情况，表达出了“动态性”</strong> =&gt;曲线展示了每<code>10ms</code>在交换机内完成的聚合次数：当某一个job进入off phase（在网聚合降为0，例如sample 120处的红色Job 3）时，其余正在通信的Job 1和Job 2在网聚合次数立即上升，直到sample 180处Job 3恢复发送。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（批判思考）</span><strong>机制有效性与应用/系统服务级性能的边界</strong>：其实相反我倒是感觉Figure 13(a/b/c)这三个动态multi-job的实验数据，并没有很好地体现在<strong>application-level或者完整系统服务（in-network service）</strong>下的复杂多租户性能，更多<strong>只能说明动态共享与重哈希机制本身的有效性</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（大规模消融）</span><strong>Figure 14（§5.4.2）：接着做了在更多job（2～8个microbenchmark jobs）情况下的消融对比实验</strong> =&gt;对比<code>Hash-based dynamic</code>（开启随机化哈希）、<code>Linear-based dynamic</code>（关闭哈希，按<code>index = seq_num % N</code>顺序映射）与<code>Static</code>静态分区=&gt;验证了若不开启随机化Hash，多作业连续梯度分片会发生严重碰撞并引发大量重传，从而证明动态哈希函数在扩展任务数时的有效性。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="8-5-figure-15-拥塞控制消融实验-with-other-atp-traffic"><a class="heading-anchor" href="#8-5-figure-15-拥塞控制消融实验-with-other-atp-traffic" aria-label="Link to this section">#</a>8.5 Figure 15：拥塞控制消融实验（With other ATP traffic）</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.14左栏中· §5.5 With other ATP traffic正文</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=14" target="_blank" rel="noreferrer">PDF p.14 · §5.5 ↗</a></div><figure><img src="figures/26a-sec55-other-atp-text.webp" alt="§5.5 With other ATP traffic原文：50%聚合器预算触发8-to-1 PS incast。" loading="lazy"><figcaption>§5.5 With other ATP traffic原文：50%聚合器预算触发8-to-1 PS incast。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.13右栏中· Figure 15 (开启与关闭CC的Goodput时序对比)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=13" target="_blank" rel="noreferrer">PDF p.13 · Fig.15 ↗</a></div><figure><img src="figures/26-fig15-cc.webp" alt="原论文Figure 15：有／无CC的goodput时间序列。" loading="lazy"><figcaption>原论文Figure 15：有／无CC的goodput时间序列。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">15 /拥塞控制（CC）消融实验：资源受限回退下的Incast抑制</p>
+<div class="atp-chain">
+<div class="atp-step"><p><span class="atp-tag">（实验意义）</span><strong>做了拥塞控制的消融实验，这个实验的意义感觉还不错，对比效果很明显</strong> =&gt;启动单个8-Worker VGG16任务运行10个iterations，仅分配峰值所需聚合器数量的<code>50%</code>，以此模拟后台其他ATP任务争用交换机资源。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Incast成因）</span><strong>回忆ATP的回退机制：为什么槽位不足会触发Incast？</strong> =&gt; ATP是在发生交换机槽位竞争或异常后，将未能聚合的分片直接交给PS进行处理；因此，当50%流量绕过交换机、由多worker（8 Workers）同时直接给到单台PS进行聚合时，就会触发严重的<strong>流量集中（8-to-1 incast）</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（ATP with CC）</span><strong>带有CC的表现（红线）与未解释的尖峰疑问</strong> =&gt;在该异常情况下，带有CC的ATP可以在<strong>PS总接收带宽饱和于<code>60Gbps</code>（见<code>§D.1</code>）</strong>的情况下，让8个worker中的每个worker稳定实现约<strong><code>7.5Gbps</code></strong>的带宽（训练吞吐达<code>66.8 img/s</code>） =&gt; <strong>不过原文并没解释红线为何会出现激增，尤其是最后训练完成前的那次尖峰激增</strong>。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（ATP without CC）</span><strong>不带CC的崩溃表现（绿线）</strong> =&gt;关闭拥塞控制后，incast引发频繁丢包与重传恢复开销：<strong>只有少部分时刻可以成功，大部分时刻聚合一直失败并且处于超时等待状态</strong>（goodput在<code>4Gbps</code>与<code>0</code>之间剧烈波动，训练吞吐跌至<code>23.2 img/s</code>，下降<code>65%</code>）。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="8-6-figure-16-附录figure-20-与非atp背景流量共存及多任务公平性边界"><a class="heading-anchor" href="#8-6-figure-16-附录figure-20-与非atp背景流量共存及多任务公平性边界" aria-label="Link to this section">#</a>8.6 Figure 16 &amp;附录Figure 20：与非ATP背景流量共存及多任务公平性边界</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.13右栏下· §5.5 Effectiveness of Congestion Control &amp; With non-ATP traffic</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=13" target="_blank" rel="noreferrer">PDF p.13 · §5.5 ↗</a></div><figure><img src="figures/27c-sec55-text.webp" alt="§5.5 Effectiveness of Congestion Control原文批注：背景流量共存实验设置。" loading="lazy"><figcaption>§5.5 Effectiveness of Congestion Control原文批注：背景流量共存实验设置。</figcaption></figure>
+</div>
+<div class="atp-source-pair">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.14左栏上· Fig. 16a正文</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=14" target="_blank" rel="noreferrer">PDF p.14 ↗</a></div><figure><img src="figures/27d-fig16a-text.webp" alt="§5.5 Figure 16a正文批注：VGG16需求低于fair share时的max-min公平分配。" loading="lazy"><figcaption>§5.5 Figure 16a正文批注：VGG16需求低于fair share时的max-min公平分配。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.14左栏上· Fig. 16b正文</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=14" target="_blank" rel="noreferrer">PDF p.14 ↗</a></div><figure><img src="figures/27e-fig16b-text.webp" alt="§5.5 Figure 16b正文：Microbenchmark需求高于fair share时的平分带宽。" loading="lazy"><figcaption>§5.5 Figure 16b正文：Microbenchmark需求高于fair share时的平分带宽。</figcaption></figure>
+</div>
+</div>
+<div class="atp-source-pair">
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.13右上· Figure 16(a)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=13" target="_blank" rel="noreferrer">PDF p.13 ↗</a></div><figure><img src="figures/27a-fig16-vgg.webp" alt="原论文Figure 16a：VGG16与普通流量共享带宽。" loading="lazy"><figcaption>原论文Figure 16a：VGG16与普通流量共享带宽。</figcaption></figure>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.13右上· Figure 16(b)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=13" target="_blank" rel="noreferrer">PDF p.13 ↗</a></div><figure><img src="figures/27b-fig16-micro.webp" alt="原论文Figure 16b：持续微基准与普通流量共享带宽。" loading="lazy"><figcaption>原论文Figure 16b：持续微基准与普通流量共享带宽。</figcaption></figure>
+</div>
+</div>
+<div class="atp-source-card">
+<div class="atp-pdf-tag"><span>📄原PDF出处：PDF p.22左栏· Appendix §D.2 Figure 20 (异构负载下的共享偏向性)</span><a href="https://www.usenix.org/system/files/nsdi21-lao.pdf#page=22" target="_blank" rel="noreferrer">PDF p.22 · Fig.20 ↗</a></div><figure><img src="figures/42-fig20-sharing.webp" alt="原论文Figure 20：相同与异构作业的归一化训练吞吐。" loading="lazy"><figcaption>原论文Figure 20：相同与异构作业的归一化训练吞吐。</figcaption></figure>
+<figure><img src="figures/43-d2-fairness.webp" alt="§D.2的原文结论：相似负载较均衡，异构负载存在偏向。" loading="lazy"><figcaption>§D.2的原文结论：相似负载较均衡，异构负载存在偏向。</figcaption></figure>
+</div>
+</div><aside class="atp-notes">
+<p class="atp-note-label">16 /背景流量共存测试（Fig. 16a/b）与异构公平性边界（Fig. 20）</p>
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect"><p><span class="atp-tag">（系统完整性）</span><strong>ATP值得学习的一点：在“设计过程+实验评估过程”都考虑到了拥塞的情况，考虑到了网络协议栈共存的事情，使其合理化</strong> =&gt;构建受控实验，测试在存在能跑满线速的background flow（常规TCP/RDMA流量）竞争下ATP的性能。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Figure 16(a)）</span><strong>16a的实验含义（真实VGG16负载，需求低于Fair Share）</strong>：在<code>25s–75s</code>的过程产生ATP流量，这里在<strong>保证VGG16最大带宽（黑色虚线峰值）的基础上，动态调度了non-ATP的带宽，且两者的带宽和（红线）=总带宽</strong> =&gt;表示ATP可以实现<strong>max-min fair allocation</strong>：需求较低的流获得自己需要的全部带宽，而不是强行占用50%平均份额；剩余容量全部留给需求更高的流。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（Figure 16(b)）</span><strong>16b的实验含义（Microbenchmark负载，需求高于Fair Share）</strong>：是在microbenchmark下测试，即没有compute间隔，加大了ATP流量带宽的占用（独占峰值高于公平份额） =&gt;这里<strong>ATP的流量并未达到其独占峰值，而是和non-ATP形成了近似平分的fair allocation，并且两者之和接近100Gbps链路线速</strong>，表现非常合理。</p>
+</div>
+<div class="atp-arrow">↓</div>
+<div class="atp-step"><p><span class="atp-tag">（附录边界）</span><strong>附录Figure 20：作者自己给出了多租户共享公平性的边界</strong>：比较了VGG16的<code>3+3</code>与<code>2+5</code> Worker配置，以及<code>VGG16 + ResNet50</code>异构组合=&gt;相似负载下分配较均衡，但在异构工作负载之间，无中心协调的抢占机制会自然倾向于<strong>Worker数量更少（每槽等待时间更短）或模型更大（发包更密集）</strong>的任务。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="9-总结-这次阅读留下的研究与写作方法"><a class="heading-anchor" href="#9-总结-这次阅读留下的研究与写作方法" aria-label="Link to this section">#</a>9.总结：这次阅读留下的研究与写作方法</h2>
+<div class="atp-quick-index"><table>
+<thead>
+<tr>
+<th align="left">值得复用的研究与写作方法</th>
+<th align="left">ATP中的对应位置</th>
+<th align="left">迁移到自己系统工作时的检验问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>先改变问题场景，再介绍系统</strong></td>
+<td align="left">§1 Introduction：从单任务SwitchML走向多租户多机架共享</td>
+<td align="left">变化的核心是workload特性、服务抽象，还是底层硬件平台限制？</td>
+</tr>
+<tr>
+<td align="left"><strong>用直观观察实验引出Motivation</strong></td>
+<td align="left">§2.2 Figure 3：展示VGG16的<code>on/off</code>通信间隙</td>
+<td align="left">观察到的是间接现象还是直接证据？如何用后续受控实验闭环验证？</td>
+</tr>
+<tr>
+<td align="left"><strong>复杂协议流程“一图言之”</strong></td>
+<td align="left">§3.5 Figure 7：用单张流程图讲清交换机全部分支</td>
+<td align="left">能否把分散在多段文字里的状态机分支浓缩成一张自包含的逻辑流程图？</td>
+</tr>
+<tr>
+<td align="left"><strong>实现章节开篇重申架构，细节引向附录</strong></td>
+<td align="left">§4 Implementation：开篇点明两部分组成，流水线细节放<code>§C</code></td>
+<td align="left">哪些是支撑核心叙事的系统折中（放正文），哪些是可复现工程细节（放附录）？</td>
+</tr>
+<tr>
+<td align="left"><strong>利用运算性质突破硬件单次访问限制</strong></td>
+<td align="left">§4 Control logic：利用bitmap按位或（<code>OR</code>）置位的幂等性</td>
+<td align="left">面对硬件流水线单次读写约束时，能否利用状态幂等性或跨包拆分重排依赖？</td>
+</tr>
+<tr>
+<td align="left"><strong>突出Baseline的公平实现与独立消融</strong></td>
+<td align="left">§4 Baseline Implementation +附录Figure 19</td>
+<td align="left">基线是否开启了同等的端侧工程优化（TSO/MP-QP）？系统加速比中工程优化与核心机制各占多少？</td>
+</tr>
+<tr>
+<td align="left"><strong>实验开篇先立问题清单，再逐节对标验证</strong></td>
+<td align="left">§5 Evaluation：6个问题对应<code>§5.2–5.5</code>，先校准PTA再做<code>33%</code>压测</td>
+<td align="left">每张实验图回答的具体问题是什么？除了吞吐均值，时序图能否解释内部机制（以及是否存在未解释的尖峰）？</td>
+</tr>
+</tbody></table>
+</div><script>
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.atp-view-btn');
+  if (!btn) return;
+  var root = document.getElementById('atp-reading-root');
+  if (!root) return;
+  var mode = btn.getAttribute('data-view');
+  root.classList.toggle('atp-wide-mode', mode === 'wide');
+  document.querySelectorAll('.atp-view-btn').forEach(function(b) {
+    b.classList.toggle('active', b === btn);
+  });
+});
+</script></div>
+        </article>
+      </div>
+      <nav class="article-end" aria-label="Article navigation">
+        <a href="../../#connectionism">Back to Connectionism</a>
+        <a href="#article">Back to top</a>
+      </nav>
+    </main>
+
+    <script>
+      (() => {
+        const toc = document.querySelector(".article-toc");
+        const article = document.querySelector(".article-body");
+        if (!toc || !article) return;
+
+        const headings = [...article.querySelectorAll("h2[id], h3[id]")];
+        const links = new Map(
+          [...toc.querySelectorAll("a[href^='#']")].map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
+        );
+        let previousLink = null;
+
+        function updateCurrentSection() {
+          const threshold = parseFloat(getComputedStyle(toc).top) + 24;
+          let current = headings[0];
+
+          for (const heading of headings) {
+            if (heading.getBoundingClientRect().top <= threshold) current = heading;
+            else break;
+          }
+
+          const currentLink = links.get(current?.id);
+          for (const link of links.values()) {
+            const active = link === links.get(current?.id);
+            link.classList.toggle("is-current", active);
+            if (active) link.setAttribute("aria-current", "location");
+            else link.removeAttribute("aria-current");
+          }
+
+          if (currentLink && currentLink !== previousLink) {
+            previousLink = currentLink;
+            if (toc.scrollHeight > toc.clientHeight) {
+              const targetTop = currentLink.offsetTop - (toc.clientHeight - currentLink.offsetHeight) / 2;
+              const maxTop = toc.scrollHeight - toc.clientHeight;
+              toc.scrollTo({
+                top: Math.max(0, Math.min(targetTop, maxTop)),
+                behavior: "smooth",
+              });
+            }
+          }
+        }
+
+        let frame = null;
+        function scheduleUpdate() {
+          if (frame !== null) return;
+          frame = requestAnimationFrame(() => {
+            frame = null;
+            updateCurrentSection();
+          });
+        }
+
+        window.addEventListener("scroll", scheduleUpdate, { passive: true });
+        window.addEventListener("resize", scheduleUpdate);
+        updateCurrentSection();
+      })();
+    </script>
+
+    <footer>
+      <p class="footer-meta">@ 2026 Kugai Chen</p>
+      <p class="footer-series">Paper Reading / Chip Design / Inspiration</p>
+    </footer>
+  </body>
+</html>
