@@ -1,7 +1,7 @@
 ---
 title: 体系结构学习笔记
 date: 2026-10-31
-series: Chip Design
+series: Inspiration
 slug: riscv-datapath-learning-notes
 description: 记录体系结构学习中的图解与简短笔记，持续补充。
 author: Kugai Chen
