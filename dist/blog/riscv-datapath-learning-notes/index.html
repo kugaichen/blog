@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#fdfcf9" />
+    <meta name="description" content="记录体系结构学习中的图解与简短笔记，持续补充。" />
+    <title>体系结构学习笔记 — Kugai Chen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;family=Noto+Serif+SC:wght@400;600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../../styles.css" />
+    <link rel="stylesheet" href="../../article.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#article">Skip to article</a>
+    <header class="site-header article-site-header">
+      <a class="brand" href="../../">Kugai Chen</a>
+      <nav class="article-nav" aria-label="Primary navigation">
+        <a href="../../#series">Series</a>
+        <a href="../../#connectionism">Connectionism</a>
+      </nav>
+    </header>
+
+    <main class="article-page" id="article">
+      <header class="article-hero">
+        <p class="article-series">Chip Design</p>
+        <h1>体系结构学习笔记</h1>
+        <p class="article-byline"><span>Kugai Chen</span><time datetime="2026-10-31">October 31, 2026</time></p>
+      </header>
+      <div class="post-content-shell">
+
+        <nav class="article-toc" aria-label="Table of contents">
+          <p class="toc-heading">Contents</p>
+          <ul><li><a href="#单周期微体系结构">单周期微体系结构</a></li>
+<li><a href="#从单周期到流水线">从单周期到流水线</a></li></ul>
+        </nav>
+        <article class="article-body">
+<h2 id="单周期微体系结构"><a class="heading-anchor" href="#单周期微体系结构" aria-label="Link to this section">#</a>单周期微体系结构</h2>
+<p>以 <code>lw x6, -4(x9)</code> 为例，梳理取指、寄存器读取、立即数扩展、地址计算、访存和写回。具体分析见图中标注。</p>
+<figure><img src="figures/user-lw-datapath-enhanced.png" alt="单周期微体系结构：lw 指令的数据通路与个人批注" loading="lazy"><figcaption>单周期微体系结构：lw 指令的数据通路与个人批注</figcaption></figure>
+<p><a href="figures/user-lw-datapath-enhanced.png">查看大图</a></p>
+<p>补充说明：</p>
+<ul>
+<li>本例为32位指令，顺序执行时PC加4；图中“每次+1”应改为“每次+4”。</li>
+<li>图中编号是分析步骤，不代表时钟周期数。</li>
+<li>最后一幅是下一条 <code>sw x6, 8(x9)</code> 指令，展示的是写内存路径。</li>
+</ul>
+<h2 id="从单周期到流水线"><a class="heading-anchor" href="#从单周期到流水线" aria-label="Link to this section">#</a>从单周期到流水线</h2>
+<p>记录无停顿的五级流水线中，写回数据与目标寄存器编号必须保持对应的问题。具体分析见图中标注。</p>
+<figure><img src="figures/user-pipeline-writeback-enhanced.png" alt="单周期变流水线：目标寄存器编号随指令传递" loading="lazy"><figcaption>单周期变流水线：目标寄存器编号随指令传递</figcaption></figure>
+<p><a href="figures/user-pipeline-writeback-enhanced.png">查看大图</a></p>
+<p>注：图中的“写回地址”指目标寄存器编号 <code>rd</code>，不是数据内存地址；它需要随指令经过各级流水线寄存器。</p>
+<p>图源：Harris《Digital Design and Computer Architecture: RISC-V Edition》相关教学数据通路，个人整理与批注。</p>
+
+        </article>
+      </div>
+      <nav class="article-end" aria-label="Article navigation">
+        <a href="../../#connectionism">Back to Connectionism</a>
+        <a href="#article">Back to top</a>
+      </nav>
+    </main>
+
+    <script>
+      (() => {
+        const toc = document.querySelector(".article-toc");
+        const article = document.querySelector(".article-body");
+        if (!toc || !article) return;
+
+        const headings = [...article.querySelectorAll("h2[id], h3[id]")];
+        const links = new Map(
+          [...toc.querySelectorAll("a[href^='#']")].map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
+        );
+        let previousLink = null;
+
+        function updateCurrentSection() {
+          const threshold = parseFloat(getComputedStyle(toc).top) + 24;
+          let current = headings[0];
+
+          for (const heading of headings) {
+            if (heading.getBoundingClientRect().top <= threshold) current = heading;
+            else break;
+          }
+
+          const currentLink = links.get(current?.id);
+          for (const link of links.values()) {
+            const active = link === links.get(current?.id);
+            link.classList.toggle("is-current", active);
+            if (active) link.setAttribute("aria-current", "location");
+            else link.removeAttribute("aria-current");
+          }
+
+          if (currentLink && currentLink !== previousLink) {
+            previousLink = currentLink;
+            if (toc.scrollHeight > toc.clientHeight) {
+              const targetTop = currentLink.offsetTop - (toc.clientHeight - currentLink.offsetHeight) / 2;
+              const maxTop = toc.scrollHeight - toc.clientHeight;
+              toc.scrollTo({
+                top: Math.max(0, Math.min(targetTop, maxTop)),
+                behavior: "smooth",
+              });
+            }
+          }
+        }
+
+        let frame = null;
+        function scheduleUpdate() {
+          if (frame !== null) return;
+          frame = requestAnimationFrame(() => {
+            frame = null;
+            updateCurrentSection();
+          });
+        }
+
+        window.addEventListener("scroll", scheduleUpdate, { passive: true });
+        window.addEventListener("resize", scheduleUpdate);
+        updateCurrentSection();
+      })();
+    </script>
+
+    <footer>
+      <p class="footer-meta">@ 2026 Kugai Chen</p>
+      <p class="footer-series">Paper Reading / Chip Design / Inspiration</p>
+    </footer>
+  </body>
+</html>
