@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -16,13 +16,20 @@
     <a class="skip-link" href="#main">Skip to content</a>
 
     <header class="site-header">
-      <p class="brand">Kugai Chen</p>
-      <p class="header-note">Systems, Network, and Reading</p>
+      <a class="brand" href="#top">Kugai Chen</a>
+      <nav class="home-nav" aria-label="主要导航">
+        <a href="#connectionism">Notes</a>
+        <a href="#series">Series</a>
+        <a href="https://github.com/kugaichen/blog" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
     </header>
 
     <main id="main">
       <section class="cover" id="top" aria-labelledby="hero-title">
-        <h1 class="sr-only" id="hero-title">A graph-theoretic Rubik's Cube</h1>
+        <div class="hero-copy">
+          <p class="eyebrow">SYSTEMS, NETWORKS &amp; READING</p>
+          <h1 id="hero-title" lang="en">Research <br>Notes<span class="title-period">.</span></h1>
+        </div>
 
         <div class="experiment" id="animation">
           <div class="animation-shell">
@@ -36,15 +43,63 @@
               Your browser does not support Canvas animation.
             </canvas>
           </div>
+          <p class="hero-attribution" lang="en">
+            <q cite="https://news.stanford.edu/stories/2005/06/youve-got-find-love-jobs-says">Don’t let the noise of others’ opinions drown out your own inner voice.</q>
+            <a class="quote-source" href="https://news.stanford.edu/stories/2005/06/youve-got-find-love-jobs-says" target="_blank" rel="noopener noreferrer" aria-label="Steve Jobs — Stanford commencement address, 2005">— Steve Jobs, 2005</a>
+          </p>
         </div>
-
-        <p class="hero-attribution">Thoughts and inspiration from kugai Chen.</p>
       </section>
 
-      <section class="editorial-section series" aria-labelledby="series-title">
+      <section class="editorial-section connectionism" id="connectionism" aria-labelledby="connectionism-title">
         <div class="section-heading">
-          <p class="eyebrow">01</p>
+          <p class="eyebrow">01 / JOURNAL</p>
+          <h2 id="connectionism-title">Latest notes</h2>
+          <p class="section-description" lang="en">Trace the evidence. Question the assumptions.</p>
+        </div>
+
+        <div class="post-group" aria-label="Recent notes">
+          <!-- content:connectionism:start -->
+          <article class="post-item">
+            <div class="post-meta">
+              <time datetime="2026-10-31">Oct 2026</time>
+              <span class="post-series">Inspiration</span>
+            </div>
+            <div class="post-info">
+              <h3><a href="./blog/riscv-datapath-learning-notes/">体系结构学习笔记</a></h3>
+              <p>记录体系结构学习中的图解与简短笔记，持续补充。</p>
+            </div>
+          </article>
+
+          <article class="post-item">
+            <div class="post-meta">
+              <time datetime="2026-10-13">Oct 2026</time>
+              <span class="post-series">Paper Reading</span>
+            </div>
+            <div class="post-info">
+              <h3><a href="./blog/atp-nsdi21-critical-reading/">读ATP：从多租户聚合，到一个完整的网络系统</a></h3>
+              <p>基于正式PDF高清原文的逻辑链式精读笔记：ATP如何提出多租户INA问题、设计端网协同协议、突破可编程交换机硬件限制，以及围绕系统设计开展实验与消融验证。</p>
+            </div>
+          </article>
+
+          <article class="post-item">
+            <div class="post-meta">
+              <time datetime="2026-09-21">Sep 2026</time>
+              <span class="post-series">Chip Design</span>
+            </div>
+            <div class="post-info">
+              <h3><a href="./blog/hardware-domain-specific-design-2022-2026/">2022–2026顶会中的网络领域定制硬件设计逻辑整理</a></h3>
+              <p>梳理网络领域定制硬件的需求-设计原则-图与实验证据</p>
+            </div>
+          </article>
+        <!-- content:connectionism:end -->
+        </div>
+      </section>
+
+      <section class="editorial-section series" id="series" aria-labelledby="series-title">
+        <div class="section-heading">
+          <p class="eyebrow">02 / EXPLORE</p>
           <h2 id="series-title">Series</h2>
+          <p class="section-description" lang="en">Different systems, shared principles.</p>
         </div>
 
         <div class="series-list">
@@ -69,46 +124,12 @@
         <!-- content:series:end -->
         </div>
       </section>
-
-      <section class="editorial-section connectionism" id="connectionism" aria-labelledby="connectionism-title">
-        <div class="section-heading">
-          <p class="eyebrow">02</p>
-          <h2 id="connectionism-title">Connectionism</h2>
-        </div>
-
-        <div class="post-group" aria-label="Recent notes">
-          <!-- content:connectionism:start -->
-          <article class="post-item">
-            <time datetime="2026-10-31">Oct 2026</time>
-            <div class="post-info">
-              <h3><a href="./blog/riscv-datapath-learning-notes/">体系结构学习笔记</a></h3>
-              <p>记录体系结构学习中的图解与简短笔记，持续补充。</p>
-            </div>
-          </article>
-
-          <article class="post-item">
-            <time datetime="2026-10-13">Oct 2026</time>
-            <div class="post-info">
-              <h3><a href="./blog/atp-nsdi21-critical-reading/">读ATP：从多租户聚合，到一个完整的网络系统</a></h3>
-              <p>基于正式PDF高清原文的逻辑链式精读笔记：ATP如何提出多租户INA问题、设计端网协同协议、突破可编程交换机硬件限制，以及围绕系统设计开展实验与消融验证。</p>
-            </div>
-          </article>
-
-          <article class="post-item">
-            <time datetime="2026-09-21">Sep 2026</time>
-            <div class="post-info">
-              <h3><a href="./blog/hardware-domain-specific-design-2022-2026/">2022–2026顶会中的网络领域定制硬件设计逻辑整理</a></h3>
-              <p>梳理网络领域定制硬件的需求-设计原则-图与实验证据</p>
-            </div>
-          </article>
-        <!-- content:connectionism:end -->
-        </div>
-      </section>
     </main>
 
     <footer id="about">
-      <p class="footer-meta">@ 2026 Kugai Chen</p>
+      <p class="footer-meta">© 2026 Kugai Chen</p>
       <p class="footer-series">Paper Reading / Chip Design / Inspiration</p>
+      <a class="footer-top" href="#top">回到顶部 ↑</a>
     </footer>
   </body>
 </html>

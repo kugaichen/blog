@@ -17,8 +17,8 @@
     <header class="site-header article-site-header">
       <a class="brand" href="../../">Kugai Chen</a>
       <nav class="article-nav" aria-label="Primary navigation">
+        <a href="../../#connectionism">Notes</a>
         <a href="../../#series">Series</a>
-        <a href="../../#connectionism">Connectionism</a>
       </nav>
     </header>
 
@@ -31,23 +31,25 @@
       <div class="post-content-shell">
 
         <nav class="article-toc" aria-label="Table of contents">
-          <p class="toc-heading">Contents</p>
-          <ul><li><a href="#1-快速索引">1. 快速索引</a></li>
-<li><a href="#2-n3ic-re-architecting-traffic-analysis-with-neural-network-interface-cards">2. N3IC：Re-architecting Traffic Analysis with Neural Network Interface Cards</a><ul><li><a href="#2-1-设计逻辑链">2.1 设计逻辑链</a></li><li><a href="#2-2-图-先交代模型如何进入设备">2.2 图：先交代模型如何进入设备</a></li><li><a href="#2-3-图-把一个神经网络层拆成可执行流水">2.3 图：把一个神经网络层拆成可执行流水</a></li><li><a href="#2-4-可学习的工作总结">2.4 可学习的工作总结</a></li></ul></li>
-<li><a href="#3-tiara-a-scalable-and-efficient-hardware-acceleration-architecture-for-stateful-layer-4-load-balancing">3. Tiara：A Scalable and Efficient Hardware Acceleration Architecture for Stateful Layer-4 Load Balancing</a><ul><li><a href="#3-1-设计逻辑链">3.1 设计逻辑链</a></li><li><a href="#3-2-图-用路径颜色解释异构任务映射">3.2 图：用路径颜色解释异构任务映射</a></li><li><a href="#3-3-图-让数据结构形状对应物理内存并行度">3.3 图：让数据结构形状对应物理内存并行度</a></li><li><a href="#3-4-证据边界与总结">3.4 证据边界与总结</a></li></ul></li>
-<li><a href="#4-taurus-a-data-plane-architecture-for-per-packet-ml">4. Taurus：A Data Plane Architecture for Per-Packet ML</a><ul><li><a href="#4-1-设计逻辑链">4.1 设计逻辑链</a></li><li><a href="#4-2-图-先画完整数据面和所有旁路">4.2 图：先画完整数据面和所有旁路</a></li><li><a href="#4-3-图-从-block-下钻到-compute-unit">4.3 图：从 block 下钻到 compute unit</a></li><li><a href="#4-4-可学习的工作总结">4.4 可学习的工作总结</a></li></ul></li>
-<li><a href="#5-menshen-isolation-mechanisms-for-high-speed-packet-processing-pipelines">5. Menshen：Isolation Mechanisms for High-Speed Packet-Processing Pipelines</a><ul><li><a href="#5-1-设计逻辑链">5.1 设计逻辑链</a></li><li><a href="#5-2-图-用颜色标出-基线-修改-新增">5.2 图：用颜色标出“基线、修改、新增”</a></li><li><a href="#5-3-图-把隔离原则逐项落实到表和-tag">5.3 图：把隔离原则逐项落实到表和 tag</a></li><li><a href="#5-4-可学习的工作总结">5.4 可学习的工作总结</a></li></ul></li>
-<li><a href="#6-srnic-a-scalable-architecture-for-rdma-nics">6. SRNIC：A Scalable Architecture for RDMA NICs</a><ul><li><a href="#6-1-设计逻辑链">6.1 设计逻辑链</a></li><li><a href="#6-2-图-fast-slow-path-必须贯穿-cpu-pcie-和-rnic">6.2 图：fast/slow path 必须贯穿 CPU、PCIe 和 RNIC</a></li><li><a href="#6-3-图-用事件和-ready-queue-代替大-wqe-cache">6.3 图：用事件和 ready queue 代替大 WQE cache</a></li><li><a href="#6-4-可学习的工作总结">6.4 可学习的工作总结</a></li></ul></li>
-<li><a href="#7-accl-an-fpga-based-collective-engine-for-distributed-applications">7. ACCL+：an FPGA-Based Collective Engine for Distributed Applications</a><ul><li><a href="#7-1-设计逻辑链">7.1 设计逻辑链</a></li><li><a href="#7-2-图-系统边界先于-engine-细节">7.2 图：系统边界先于 engine 细节</a></li><li><a href="#7-3-图-明确区分控制路径和数据路径">7.3 图：明确区分控制路径和数据路径</a></li><li><a href="#7-4-证据边界与总结">7.4 证据边界与总结</a></li></ul></li>
-<li><a href="#8-cepheus-accelerating-datacenter-applications-with-high-performance-roce-capable-multicast">8. Cepheus：Accelerating Datacenter Applications with High-Performance RoCE-Capable Multicast</a><ul><li><a href="#8-1-设计逻辑链">8.1 设计逻辑链</a></li><li><a href="#8-2-图-把协议的三个阶段画成连续故事">8.2 图：把协议的三个阶段画成连续故事</a></li><li><a href="#8-3-图-把协议动作落到-fpga-模块">8.3 图：把协议动作落到 FPGA 模块</a></li><li><a href="#8-4-可学习的工作总结">8.4 可学习的工作总结</a></li></ul></li>
-<li><a href="#9-optimusprime-unleash-dataplane-programmability-through-a-transformable-architecture">9. OptimusPrime：Unleash Dataplane Programmability through a Transformable Architecture</a><ul><li><a href="#9-1-设计逻辑链">9.1 设计逻辑链</a></li><li><a href="#9-2-图-用颜色表达可共享和-mode-specific-组件">9.2 图：用颜色表达可共享和 mode-specific 组件</a></li><li><a href="#9-3-图-用最小互连支持三种通信语义">9.3 图：用最小互连支持三种通信语义</a></li><li><a href="#9-4-证据边界与总结">9.4 证据边界与总结</a></li></ul></li>
-<li><a href="#10-tassel-fast-scalable-and-accurate-rate-limiter-for-rdma-nics">10. Tassel：Fast, Scalable, and Accurate Rate Limiter for RDMA NICs</a><ul><li><a href="#10-1-设计逻辑链">10.1 设计逻辑链</a></li><li><a href="#10-2-图-先解释为什么要分层">10.2 图：先解释为什么要分层</a></li><li><a href="#10-3-图-展示它在真实-rnic-中插在哪里">10.3 图：展示它在真实 RNIC 中插在哪里</a></li><li><a href="#10-4-可学习的工作总结">10.4 可学习的工作总结</a></li></ul></li>
-<li><a href="#11-rpcnic-enabling-efficient-datacenter-rpc-offloading-on-pcie-attached-smartnics">11. RpcNIC：Enabling Efficient Datacenter RPC Offloading on PCIe-attached SmartNICs</a><ul><li><a href="#11-1-设计逻辑链">11.1 设计逻辑链</a></li><li><a href="#11-2-图-在同一张图中标数据所有权和跨-pcie-路径">11.2 图：在同一张图中标数据所有权和跨 PCIe 路径</a></li><li><a href="#11-3-图-用三个反例-方案直接解释数据移动代价">11.3 图：用三个反例/方案直接解释数据移动代价</a></li><li><a href="#11-4-证据边界与总结">11.4 证据边界与总结</a></li></ul></li>
-<li><a href="#12-clubheap-a-high-speed-and-scalable-priority-queue-for-programmable-packet-scheduling">12. ClubHeap：A High-Speed and Scalable Priority Queue for Programmable Packet Scheduling</a><ul><li><a href="#12-1-设计逻辑链">12.1 设计逻辑链</a></li><li><a href="#12-2-图-用-周期-层级-画出依赖如何被消除">12.2 图：用“周期 × 层级”画出依赖如何被消除</a></li><li><a href="#12-3-图-处理器内部和-memory-mapping-分开画">12.3 图：处理器内部和 memory mapping 分开画</a></li><li><a href="#12-4-证据边界与总结">12.4 证据边界与总结</a></li></ul></li>
-<li><a href="#13-roce-balboa-service-enhanced-rdma-offload-engine-for-data-center-smartnics">13. RoCE BALBOA：Service-Enhanced RDMA Offload Engine for Data Center SmartNICs</a><ul><li><a href="#13-1-设计逻辑链">13.1 设计逻辑链</a></li><li><a href="#13-2-图-复杂协议栈也要保持可追踪路径">13.2 图：复杂协议栈也要保持可追踪路径</a></li><li><a href="#13-3-图-只挑决定-line-rate-的关键模块下钻">13.3 图：只挑决定 line rate 的关键模块下钻</a></li><li><a href="#13-4-证据边界与总结">13.4 证据边界与总结</a></li></ul></li>
-<li><a href="#14-跨论文总结-一条可复用的硬件设计逻辑链">14. 跨论文总结：一条可复用的硬件设计逻辑链</a><ul><li><a href="#14-1-从-系统慢-继续追问到-哪一种硬件资源不匹配">14.1 从“系统慢”继续追问到“哪一种硬件资源不匹配”</a></li><li><a href="#14-2-设计原则通常来自四类-不对称性">14.2 设计原则通常来自四类“不对称性”</a></li><li><a href="#14-3-每条原则必须能在图中找到一个模块或一条路径">14.3 每条原则必须能在图中找到一个模块或一条路径</a></li><li><a href="#14-4-实验应形成四层证据金字塔">14.4 实验应形成四层证据金字塔</a></li></ul></li>
-<li><a href="#15-候补论文与未进入主清单的原因">15. 候补论文与未进入主清单的原因</a></li>
-<li><a href="#16-最终记忆版-每篇工作一句话">16. 最终记忆版：每篇工作一句话</a></li></ul>
+          <details class="toc-disclosure" open>
+            <summary class="toc-heading"><span>目录</span><span class="toc-count">16 个章节</span><span class="toc-current"><span class="toc-current-title"></span><span class="toc-current-position"></span></span></summary>
+            <ul><li><a href="#1-快速索引" data-section-title="快速索引">1. 快速索引</a></li>
+<li><a href="#2-n3ic-re-architecting-traffic-analysis-with-neural-network-interface-cards" data-section-title="N3IC">2. N3IC：Re-architecting Traffic Analysis with Neural Network Interface Cards</a><ul><li><a href="#2-1-设计逻辑链">2.1 设计逻辑链</a></li><li><a href="#2-2-图-先交代模型如何进入设备">2.2 图：先交代模型如何进入设备</a></li><li><a href="#2-3-图-把一个神经网络层拆成可执行流水">2.3 图：把一个神经网络层拆成可执行流水</a></li><li><a href="#2-4-可学习的工作总结">2.4 可学习的工作总结</a></li></ul></li>
+<li><a href="#3-tiara-a-scalable-and-efficient-hardware-acceleration-architecture-for-stateful-layer-4-load-balancing" data-section-title="Tiara">3. Tiara：A Scalable and Efficient Hardware Acceleration Architecture for Stateful Layer-4 Load Balancing</a><ul><li><a href="#3-1-设计逻辑链">3.1 设计逻辑链</a></li><li><a href="#3-2-图-用路径颜色解释异构任务映射">3.2 图：用路径颜色解释异构任务映射</a></li><li><a href="#3-3-图-让数据结构形状对应物理内存并行度">3.3 图：让数据结构形状对应物理内存并行度</a></li><li><a href="#3-4-证据边界与总结">3.4 证据边界与总结</a></li></ul></li>
+<li><a href="#4-taurus-a-data-plane-architecture-for-per-packet-ml" data-section-title="Taurus">4. Taurus：A Data Plane Architecture for Per-Packet ML</a><ul><li><a href="#4-1-设计逻辑链">4.1 设计逻辑链</a></li><li><a href="#4-2-图-先画完整数据面和所有旁路">4.2 图：先画完整数据面和所有旁路</a></li><li><a href="#4-3-图-从-block-下钻到-compute-unit">4.3 图：从 block 下钻到 compute unit</a></li><li><a href="#4-4-可学习的工作总结">4.4 可学习的工作总结</a></li></ul></li>
+<li><a href="#5-menshen-isolation-mechanisms-for-high-speed-packet-processing-pipelines" data-section-title="Menshen">5. Menshen：Isolation Mechanisms for High-Speed Packet-Processing Pipelines</a><ul><li><a href="#5-1-设计逻辑链">5.1 设计逻辑链</a></li><li><a href="#5-2-图-用颜色标出-基线-修改-新增">5.2 图：用颜色标出“基线、修改、新增”</a></li><li><a href="#5-3-图-把隔离原则逐项落实到表和-tag">5.3 图：把隔离原则逐项落实到表和 tag</a></li><li><a href="#5-4-可学习的工作总结">5.4 可学习的工作总结</a></li></ul></li>
+<li><a href="#6-srnic-a-scalable-architecture-for-rdma-nics" data-section-title="SRNIC">6. SRNIC：A Scalable Architecture for RDMA NICs</a><ul><li><a href="#6-1-设计逻辑链">6.1 设计逻辑链</a></li><li><a href="#6-2-图-fast-slow-path-必须贯穿-cpu-pcie-和-rnic">6.2 图：fast/slow path 必须贯穿 CPU、PCIe 和 RNIC</a></li><li><a href="#6-3-图-用事件和-ready-queue-代替大-wqe-cache">6.3 图：用事件和 ready queue 代替大 WQE cache</a></li><li><a href="#6-4-可学习的工作总结">6.4 可学习的工作总结</a></li></ul></li>
+<li><a href="#7-accl-an-fpga-based-collective-engine-for-distributed-applications" data-section-title="ACCL+">7. ACCL+：an FPGA-Based Collective Engine for Distributed Applications</a><ul><li><a href="#7-1-设计逻辑链">7.1 设计逻辑链</a></li><li><a href="#7-2-图-系统边界先于-engine-细节">7.2 图：系统边界先于 engine 细节</a></li><li><a href="#7-3-图-明确区分控制路径和数据路径">7.3 图：明确区分控制路径和数据路径</a></li><li><a href="#7-4-证据边界与总结">7.4 证据边界与总结</a></li></ul></li>
+<li><a href="#8-cepheus-accelerating-datacenter-applications-with-high-performance-roce-capable-multicast" data-section-title="Cepheus">8. Cepheus：Accelerating Datacenter Applications with High-Performance RoCE-Capable Multicast</a><ul><li><a href="#8-1-设计逻辑链">8.1 设计逻辑链</a></li><li><a href="#8-2-图-把协议的三个阶段画成连续故事">8.2 图：把协议的三个阶段画成连续故事</a></li><li><a href="#8-3-图-把协议动作落到-fpga-模块">8.3 图：把协议动作落到 FPGA 模块</a></li><li><a href="#8-4-可学习的工作总结">8.4 可学习的工作总结</a></li></ul></li>
+<li><a href="#9-optimusprime-unleash-dataplane-programmability-through-a-transformable-architecture" data-section-title="OptimusPrime">9. OptimusPrime：Unleash Dataplane Programmability through a Transformable Architecture</a><ul><li><a href="#9-1-设计逻辑链">9.1 设计逻辑链</a></li><li><a href="#9-2-图-用颜色表达可共享和-mode-specific-组件">9.2 图：用颜色表达可共享和 mode-specific 组件</a></li><li><a href="#9-3-图-用最小互连支持三种通信语义">9.3 图：用最小互连支持三种通信语义</a></li><li><a href="#9-4-证据边界与总结">9.4 证据边界与总结</a></li></ul></li>
+<li><a href="#10-tassel-fast-scalable-and-accurate-rate-limiter-for-rdma-nics" data-section-title="Tassel">10. Tassel：Fast, Scalable, and Accurate Rate Limiter for RDMA NICs</a><ul><li><a href="#10-1-设计逻辑链">10.1 设计逻辑链</a></li><li><a href="#10-2-图-先解释为什么要分层">10.2 图：先解释为什么要分层</a></li><li><a href="#10-3-图-展示它在真实-rnic-中插在哪里">10.3 图：展示它在真实 RNIC 中插在哪里</a></li><li><a href="#10-4-可学习的工作总结">10.4 可学习的工作总结</a></li></ul></li>
+<li><a href="#11-rpcnic-enabling-efficient-datacenter-rpc-offloading-on-pcie-attached-smartnics" data-section-title="RpcNIC">11. RpcNIC：Enabling Efficient Datacenter RPC Offloading on PCIe-attached SmartNICs</a><ul><li><a href="#11-1-设计逻辑链">11.1 设计逻辑链</a></li><li><a href="#11-2-图-在同一张图中标数据所有权和跨-pcie-路径">11.2 图：在同一张图中标数据所有权和跨 PCIe 路径</a></li><li><a href="#11-3-图-用三个反例-方案直接解释数据移动代价">11.3 图：用三个反例/方案直接解释数据移动代价</a></li><li><a href="#11-4-证据边界与总结">11.4 证据边界与总结</a></li></ul></li>
+<li><a href="#12-clubheap-a-high-speed-and-scalable-priority-queue-for-programmable-packet-scheduling" data-section-title="ClubHeap">12. ClubHeap：A High-Speed and Scalable Priority Queue for Programmable Packet Scheduling</a><ul><li><a href="#12-1-设计逻辑链">12.1 设计逻辑链</a></li><li><a href="#12-2-图-用-周期-层级-画出依赖如何被消除">12.2 图：用“周期 × 层级”画出依赖如何被消除</a></li><li><a href="#12-3-图-处理器内部和-memory-mapping-分开画">12.3 图：处理器内部和 memory mapping 分开画</a></li><li><a href="#12-4-证据边界与总结">12.4 证据边界与总结</a></li></ul></li>
+<li><a href="#13-roce-balboa-service-enhanced-rdma-offload-engine-for-data-center-smartnics" data-section-title="RoCE BALBOA">13. RoCE BALBOA：Service-Enhanced RDMA Offload Engine for Data Center SmartNICs</a><ul><li><a href="#13-1-设计逻辑链">13.1 设计逻辑链</a></li><li><a href="#13-2-图-复杂协议栈也要保持可追踪路径">13.2 图：复杂协议栈也要保持可追踪路径</a></li><li><a href="#13-3-图-只挑决定-line-rate-的关键模块下钻">13.3 图：只挑决定 line rate 的关键模块下钻</a></li><li><a href="#13-4-证据边界与总结">13.4 证据边界与总结</a></li></ul></li>
+<li><a href="#14-跨论文总结-一条可复用的硬件设计逻辑链" data-section-title="跨论文总结">14. 跨论文总结：一条可复用的硬件设计逻辑链</a><ul><li><a href="#14-1-从-系统慢-继续追问到-哪一种硬件资源不匹配">14.1 从“系统慢”继续追问到“哪一种硬件资源不匹配”</a></li><li><a href="#14-2-设计原则通常来自四类-不对称性">14.2 设计原则通常来自四类“不对称性”</a></li><li><a href="#14-3-每条原则必须能在图中找到一个模块或一条路径">14.3 每条原则必须能在图中找到一个模块或一条路径</a></li><li><a href="#14-4-实验应形成四层证据金字塔">14.4 实验应形成四层证据金字塔</a></li></ul></li>
+<li><a href="#15-候补论文与未进入主清单的原因" data-section-title="候补论文与未进入主清单的原因">15. 候补论文与未进入主清单的原因</a></li>
+<li><a href="#16-最终记忆版-每篇工作一句话" data-section-title="最终记忆版">16. 最终记忆版：每篇工作一句话</a></li></ul>
+          </details>
         </nav>
         <article class="article-body">
 <h2 id="1-快速索引"><a class="heading-anchor" href="#1-快速索引" aria-label="Link to this section">#</a>1. 快速索引</h2>
@@ -192,7 +194,7 @@
 </tr>
 </tbody></table>
 <h3 id="2-2-图-先交代模型如何进入设备"><a class="heading-anchor" href="#2-2-图-先交代模型如何进入设备" aria-label="Link to this section">#</a>2.2 图：先交代模型如何进入设备</h3>
-<figure><img src="figures/hardware_design_papers/n3ic_fig1_overview.png" alt="N3IC Fig.1：离线模型生成与在线 NIC 推理" loading="lazy"><figcaption>N3IC Fig.1：离线模型生成与在线 NIC 推理</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/n3ic_fig1_overview.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/n3ic_fig1_overview.png" alt="N3IC Fig.1：离线模型生成与在线 NIC 推理" loading="lazy"></a><figcaption>N3IC Fig.1：离线模型生成与在线 NIC 推理</figcaption></figure>
 <p>原图为 Fig.1，PDF p.3。它把图纵向分成两段：上半段是离线量化、搜索、编译，下半段是在线数据面。最值得模仿的是“产物逐级变形”的表达：dataset → binarized dataset → model description → target program → NIC pipeline，而不是只画一个模糊的“compiler”方框。</p>
 <p>画类似图时，可以保留三个视觉层次：</p>
 <ol>
@@ -201,7 +203,7 @@
 <li>用明显边界标出真正在线运行的硬件范围。</li>
 </ol>
 <h3 id="2-3-图-把一个神经网络层拆成可执行流水"><a class="heading-anchor" href="#2-3-图-把一个神经网络层拆成可执行流水" aria-label="Link to this section">#</a>2.3 图：把一个神经网络层拆成可执行流水</h3>
-<figure><img src="figures/hardware_design_papers/n3ic_fig11_bnn_executor.png" alt="N3IC Fig.11：BNN Executor 硬件模块" loading="lazy"><figcaption>N3IC Fig.11：BNN Executor 硬件模块</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/n3ic_fig11_bnn_executor.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/n3ic_fig11_bnn_executor.png" alt="N3IC Fig.11：BNN Executor 硬件模块" loading="lazy"></a><figcaption>N3IC Fig.11：BNN Executor 硬件模块</figcaption></figure>
 <p>原图为 Fig.11，PDF p.9。这张图同时展示了两级层次：上方是 Block 1…K 的网络层级联，下方是一个 block 内部的三阶段流水。它还显式画出 CAM/weight buffer、寄存器边界、并行 popcount、ADD、SIGN 以及输入/输出宽度 <code>n</code>、<code>m</code>。</p>
 <p>这类图可直接模仿的规则是：<strong>状态存在哪里、组合运算在哪里、stage 在哪里切开、位宽如何变化</strong>，四件事都要能一眼找到。</p>
 <h3 id="2-4-可学习的工作总结"><a class="heading-anchor" href="#2-4-可学习的工作总结" aria-label="Link to this section">#</a>2.4 可学习的工作总结</h3>
@@ -239,11 +241,11 @@
 </tr>
 </tbody></table>
 <h3 id="3-2-图-用路径颜色解释异构任务映射"><a class="heading-anchor" href="#3-2-图-用路径颜色解释异构任务映射" aria-label="Link to this section">#</a>3.2 图：用路径颜色解释异构任务映射</h3>
-<figure><img src="figures/hardware_design_papers/tiara_fig4_architecture.png" alt="Tiara Fig.4：三级异构负载均衡架构" loading="lazy"><figcaption>Tiara Fig.4：三级异构负载均衡架构</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/tiara_fig4_architecture.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/tiara_fig4_architecture.png" alt="Tiara Fig.4：三级异构负载均衡架构" loading="lazy"></a><figcaption>Tiara Fig.4：三级异构负载均衡架构</figcaption></figure>
 <p>原图为 Fig.4，PDF p.5。图中先用大边界划分 T-switch、T-NIC、T-server，再用红/蓝实线表示 inbound/outbound fast path，用虚线表示 slow/control path。每个器件下方还给出约数量级时延，让“为什么这样分工”不仅是文字判断，也在图中体现。</p>
 <p>模仿时应避免只把三类器件并排摆放；要把<strong>哪类包走哪条路径、在哪次 lookup 命中/未命中后分叉、状态由谁拥有</strong>画出来。</p>
 <h3 id="3-3-图-让数据结构形状对应物理内存并行度"><a class="heading-anchor" href="#3-3-图-让数据结构形状对应物理内存并行度" aria-label="Link to this section">#</a>3.3 图：让数据结构形状对应物理内存并行度</h3>
-<figure><img src="figures/hardware_design_papers/tiara_fig5_hash_chaining.png" alt="Tiara Fig.5：固定长度 hash chaining 与 HBM channel pair" loading="lazy"><figcaption>Tiara Fig.5：固定长度 hash chaining 与 HBM channel pair</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/tiara_fig5_hash_chaining.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/tiara_fig5_hash_chaining.png" alt="Tiara Fig.5：固定长度 hash chaining 与 HBM channel pair" loading="lazy"></a><figcaption>Tiara Fig.5：固定长度 hash chaining 与 HBM channel pair</figcaption></figure>
 <p>原图为 Fig.5，PDF p.7。它没有停留在“使用 HBM”这一层，而是说明 hash table 的深度 <code>M</code>、宽度 <code>N</code> 如何映射到 HBM channel pair，使一次查询可以并行读取多个 entry。</p>
 <p>这类图适合模仿成“逻辑数据结构 → 物理 bank/channel → 单次访问并行度”的映射图。它能直接支撑后面的 channel 参数扫描与 97 Gb/s lookup 结果。</p>
 <h3 id="3-4-证据边界与总结"><a class="heading-anchor" href="#3-4-证据边界与总结" aria-label="Link to this section">#</a>3.4 证据边界与总结</h3>
@@ -281,10 +283,10 @@
 </tr>
 </tbody></table>
 <h3 id="4-2-图-先画完整数据面和所有旁路"><a class="heading-anchor" href="#4-2-图-先画完整数据面和所有旁路" aria-label="Link to this section">#</a>4.2 图：先画完整数据面和所有旁路</h3>
-<figure><img src="figures/hardware_design_papers/taurus_fig6_pipeline.png" alt="Taurus Fig.6：修改后的 packet-processing pipeline" loading="lazy"><figcaption>Taurus Fig.6：修改后的 packet-processing pipeline</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/taurus_fig6_pipeline.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/taurus_fig6_pipeline.png" alt="Taurus Fig.6：修改后的 packet-processing pipeline" loading="lazy"></a><figcaption>Taurus Fig.6：修改后的 packet-processing pipeline</figcaption></figure>
 <p>原图为 Fig.6，PDF p.6。除了主计算链，它把 header bypass、packet body bypass、三个 packet queue 和 round-robin 合流都画出来。这样读者不会误以为所有包都必须穿过 ML block，也能看出引入新模块后原交换语义如何保持。</p>
 <h3 id="4-3-图-从-block-下钻到-compute-unit"><a class="heading-anchor" href="#4-3-图-从-block-下钻到-compute-unit" aria-label="Link to this section">#</a>4.3 图：从 block 下钻到 compute unit</h3>
-<figure><img src="figures/hardware_design_papers/taurus_fig7_8_mapreduce_cu.png" alt="Taurus Fig.7–8：MapReduce block 与三级 CU" loading="lazy"><figcaption>Taurus Fig.7–8：MapReduce block 与三级 CU</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/taurus_fig7_8_mapreduce_cu.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/taurus_fig7_8_mapreduce_cu.png" alt="Taurus Fig.7–8：MapReduce block 与三级 CU" loading="lazy"></a><figcaption>Taurus Fig.7–8：MapReduce block 与三级 CU</figcaption></figure>
 <p>原图为 Fig.7、Fig.8，PDF p.6。Fig.7 表达 PHV 中 headers/features 的分离、MU/CU 阵列和 non-feature header FIFO；Fig.8 再把一个 CU 拆成 lane、FU、pipeline register 和 reduction path。</p>
 <p>这是非常标准的三级画法：</p>
 <ol>
@@ -327,11 +329,11 @@
 </tr>
 </tbody></table>
 <h3 id="5-2-图-用颜色标出-基线-修改-新增"><a class="heading-anchor" href="#5-2-图-用颜色标出-基线-修改-新增" aria-label="Link to this section">#</a>5.2 图：用颜色标出“基线、修改、新增”</h3>
-<figure><img src="figures/hardware_design_papers/menshen_fig2_architecture.png" alt="Menshen Fig.2：总体硬件与软硬件接口" loading="lazy"><figcaption>Menshen Fig.2：总体硬件与软硬件接口</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/menshen_fig2_architecture.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/menshen_fig2_architecture.png" alt="Menshen Fig.2：总体硬件与软硬件接口" loading="lazy"></a><figcaption>Menshen Fig.2：总体硬件与软硬件接口</figcaption></figure>
 <p>原图为 Fig.2，PDF p.5。它沿着 packets → parser → stages → deparser 画出完整流水，并用颜色区分原 RMT、修改模块和新增模块；重配置包走红色虚线路径，普通数据包走黑色路径。</p>
 <p>这种“基线图上做差分”的方式非常适合体系结构论文：读者能立即看到创新落在哪些模块，也不会把已有硬件误当成贡献。</p>
 <h3 id="5-3-图-把隔离原则逐项落实到表和-tag"><a class="heading-anchor" href="#5-3-图-把隔离原则逐项落实到表和-tag" aria-label="Link to this section">#</a>5.3 图：把隔离原则逐项落实到表和 tag</h3>
-<figure><img src="figures/hardware_design_papers/menshen_fig3_4_parser_stage.png" alt="Menshen Fig.3–4：module-aware parser 与 processing stage" loading="lazy"><figcaption>Menshen Fig.3–4：module-aware parser 与 processing stage</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/menshen_fig3_4_parser_stage.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/menshen_fig3_4_parser_stage.png" alt="Menshen Fig.3–4：module-aware parser 与 processing stage" loading="lazy"></a><figcaption>Menshen Fig.3–4：module-aware parser 与 processing stage</figcaption></figure>
 <p>原图为 Fig.3、Fig.4，PDF p.5。parser 用 VID 索引 Parser Action Table；stage 内 VID 同时驱动 segment table、key extractor/mask、match/action 和新 PHV。每个“隔离原则”都对应一个具体 tag、table 或 address translation，而不是只写一句“we provide isolation”。</p>
 <h3 id="5-4-可学习的工作总结"><a class="heading-anchor" href="#5-4-可学习的工作总结" aria-label="Link to this section">#</a>5.4 可学习的工作总结</h3>
 <p>Menshen 的方法可以概括为：先给每类共享资源做“partition 还是 overlay”的决策，再用一个紧凑 module ID 贯穿全流水。评价也分别证明行为隔离、重配置不中断、线速和资源开销。ASIC 5.7% 是由局部综合结果进一步推算的整芯片比例，引用时必须保留这一证据边界。</p>
@@ -368,11 +370,11 @@
 </tr>
 </tbody></table>
 <h3 id="6-2-图-fast-slow-path-必须贯穿-cpu-pcie-和-rnic"><a class="heading-anchor" href="#6-2-图-fast-slow-path-必须贯穿-cpu-pcie-和-rnic" aria-label="Link to this section">#</a>6.2 图：fast/slow path 必须贯穿 CPU、PCIe 和 RNIC</h3>
-<figure><img src="figures/hardware_design_papers/srnic_fig4_architecture.png" alt="SRNIC Fig.4：整体架构与三类数据路径" loading="lazy"><figcaption>SRNIC Fig.4：整体架构与三类数据路径</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/srnic_fig4_architecture.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/srnic_fig4_architecture.png" alt="SRNIC Fig.4：整体架构与三类数据路径" loading="lazy"></a><figcaption>SRNIC Fig.4：整体架构与三类数据路径</figcaption></figure>
 <p>原图为 Fig.4，PDF p.7。图用蓝色、红色实线和红色虚线分别画 outbound、inbound fast path 和 inbound slow path；CPU/driver、PCIe、DMA、transport、retransmission、QPC/MTT 的所有权边界都很清楚。</p>
 <p>画 fast/slow path 时，应让同一种颜色真正穿过各层，而不是只在图例中宣称有快慢路径。这样读者才能检查“异常在哪里上送、正常路径是否被 CPU 打断”。</p>
 <h3 id="6-3-图-用事件和-ready-queue-代替大-wqe-cache"><a class="heading-anchor" href="#6-3-图-用事件和-ready-queue-代替大-wqe-cache" aria-label="Link to this section">#</a>6.3 图：用事件和 ready queue 代替大 WQE cache</h3>
-<figure><img src="figures/hardware_design_papers/srnic_fig6_sq_scheduler.png" alt="SRNIC Fig.6：cache-free SQ scheduler" loading="lazy"><figcaption>SRNIC Fig.6：cache-free SQ scheduler</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/srnic_fig6_sq_scheduler.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/srnic_fig6_sq_scheduler.png" alt="SRNIC Fig.6：cache-free SQ scheduler" loading="lazy"></a><figcaption>SRNIC Fig.6：cache-free SQ scheduler</figcaption></figure>
 <p>原图为 Fig.6，PDF p.8。它把 host SQ/WQE、doorbell、Event Mux、credit、QPC ready bits、Schedule Policy、Schedule Queue、DMA/Data Buffer 连成闭环。相比只画一个“Scheduler”方框，这张图解释了谁产生事件、何时入队、何时触发 DMA，以及拥塞控制如何反馈。</p>
 <h3 id="6-4-可学习的工作总结"><a class="heading-anchor" href="#6-4-可学习的工作总结" aria-label="Link to this section">#</a>6.4 可学习的工作总结</h3>
 <p>SRNIC 的套路是先做一张“状态容量账本”，再逐项消表：WQE cache 用无缓存调度消掉，bitmap 放 host，reorder buffer/ORT 用协议头扩展消掉。它利用 common/rare path 的不对称性，在不把整个 transport 搬回软件的前提下获得连接规模和有损网络能力。</p>
@@ -409,12 +411,12 @@
 </tr>
 </tbody></table>
 <h3 id="7-2-图-系统边界先于-engine-细节"><a class="heading-anchor" href="#7-2-图-系统边界先于-engine-细节" aria-label="Link to this section">#</a>7.2 图：系统边界先于 engine 细节</h3>
-<figure><img src="figures/hardware_design_papers/acclplus_fig2_system_overview.png" alt="ACCL+ Fig.2：FPGA collective communication library 系统总图" loading="lazy"><figcaption>ACCL+ Fig.2：FPGA collective communication library 系统总图</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/acclplus_fig2_system_overview.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/acclplus_fig2_system_overview.png" alt="ACCL+ Fig.2：FPGA collective communication library 系统总图" loading="lazy"></a><figcaption>ACCL+ Fig.2：FPGA collective communication library 系统总图</figcaption></figure>
 <p>原图为 Fig.2，PDF p.5。上层是 host system，下层是 FPGA static shell/service region；PCIe、memory access、network 和 kernel interface 都有独立箭头。它先回答“CCLO 放在哪里、谁调用、如何接协议”，再进入内部结构。</p>
 <h3 id="7-3-图-明确区分控制路径和数据路径"><a class="heading-anchor" href="#7-3-图-明确区分控制路径和数据路径" aria-label="Link to this section">#</a>7.3 图：明确区分控制路径和数据路径</h3>
-<figure><img src="figures/hardware_design_papers/acclplus_fig3_cclo_engine.png" alt="ACCL+ Fig.3：CCLO engine" loading="lazy"><figcaption>ACCL+ Fig.3：CCLO engine</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/acclplus_fig3_cclo_engine.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/acclplus_fig3_cclo_engine.png" alt="ACCL+ Fig.3：CCLO engine" loading="lazy"></a><figcaption>ACCL+ Fig.3：CCLO engine</figcaption></figure>
 <p>原图为 Fig.3，PDF p.6。红色是 control path，蓝色是 data path；编号 1–6 给出从命令仲裁、microcode、Rx buffer 到 Tx control 的交互顺序。图中不仅有模块名，也把 <code>Rx_Notif</code>、<code>Tx Ctrl</code>、<code>Mem Ctrl</code> 等接口语义写出来。</p>
-<figure><img src="figures/hardware_design_papers/acclplus_fig4_dmp.png" alt="ACCL+ Fig.4：Data Movement Processor" loading="lazy"><figcaption>ACCL+ Fig.4：Data Movement Processor</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/acclplus_fig4_dmp.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/acclplus_fig4_dmp.png" alt="ACCL+ Fig.4：Data Movement Processor" loading="lazy"></a><figcaption>ACCL+ Fig.4：Data Movement Processor</figcaption></figure>
 <p>原图为 Fig.4，PDF p.6。DMP 下钻图展示 microcode decode/dispatch、Op0/Op1/Res、command align/retire，以及 request/ack。它解释了为什么 uC 可以保持灵活，而高带宽数据操作不必由 uC 串行执行。</p>
 <h3 id="7-4-证据边界与总结"><a class="heading-anchor" href="#7-4-证据边界与总结" aria-label="Link to this section">#</a>7.4 证据边界与总结</h3>
 <p>CCLO、POE 和应用 kernel 的资源是分开报告的，不能把 12.1% LUT 当成整个系统。部分 host collective 受 XRT 路径和算法选择限制，并非所有 message size 都胜过 MPI。ACCL+ 最值得模仿的是：把“部署后经常变化的 schedule”留在固件，把“必须持续跑满的 data movement”固定为并行 primitive，再用 adapter 封装平台差异。</p>
@@ -451,10 +453,10 @@
 </tr>
 </tbody></table>
 <h3 id="8-2-图-把协议的三个阶段画成连续故事"><a class="heading-anchor" href="#8-2-图-把协议的三个阶段画成连续故事" aria-label="Link to this section">#</a>8.2 图：把协议的三个阶段画成连续故事</h3>
-<figure><img src="figures/hardware_design_papers/cepheus_fig2_architecture_workflow.png" alt="Cepheus Fig.2：MFT 注册、数据复制和 ACK 聚合" loading="lazy"><figcaption>Cepheus Fig.2：MFT 注册、数据复制和 ACK 聚合</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/cepheus_fig2_architecture_workflow.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/cepheus_fig2_architecture_workflow.png" alt="Cepheus Fig.2：MFT 注册、数据复制和 ACK 聚合" loading="lazy"></a><figcaption>Cepheus Fig.2：MFT 注册、数据复制和 ACK 聚合</figcaption></figure>
 <p>原图为 Fig.2，PDF p.4。三个子图复用相同拓扑，依次展示 MFT registration、data replication/connection bridging、many-to-one ACK aggregation。相同节点位置保持不变，只改变活跃路径和注释，读者能追踪状态如何建立并被数据/反馈使用。</p>
 <h3 id="8-3-图-把协议动作落到-fpga-模块"><a class="heading-anchor" href="#8-3-图-把协议动作落到-fpga-模块" aria-label="Link to this section">#</a>8.3 图：把协议动作落到 FPGA 模块</h3>
-<figure><img src="figures/hardware_design_papers/cepheus_fig7_fpga_pipeline.png" alt="Cepheus Fig.7：testbed 与 FPGA accelerator pipeline" loading="lazy"><figcaption>Cepheus Fig.7：testbed 与 FPGA accelerator pipeline</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/cepheus_fig7_fpga_pipeline.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/cepheus_fig7_fpga_pipeline.png" alt="Cepheus Fig.7：testbed 与 FPGA accelerator pipeline" loading="lazy"></a><figcaption>Cepheus Fig.7：testbed 与 FPGA accelerator pipeline</figcaption></figure>
 <p>原图为 Fig.7，PDF p.8。右侧 pipeline 明确包含 Parser、Arbiter、Duplicator、Queue System、Multiplexer、ACK Aggregator 和 Multicast Forwarding Table，并用不同颜色表示 data、ACK、control flow；旁边直接放资源小表，使“功能图”和“成本图”靠在一起。</p>
 <h3 id="8-4-可学习的工作总结"><a class="heading-anchor" href="#8-4-可学习的工作总结" aria-label="Link to this section">#</a>8.4 可学习的工作总结</h3>
 <p>Cepheus 的图链从跨交换机协议工作流，下钻到状态表和 FPGA packet pipeline，特别接近“模块交互 + 数据流变化”的参考风格。其资源结论只针对 FPGA 原型，没有实测 ASIC 面积或芯片功耗；论文对 ASIC 的讨论应视为可行性分析。</p>
@@ -491,10 +493,10 @@
 </tr>
 </tbody></table>
 <h3 id="9-2-图-用颜色表达可共享和-mode-specific-组件"><a class="heading-anchor" href="#9-2-图-用颜色表达可共享和-mode-specific-组件" aria-label="Link to this section">#</a>9.2 图：用颜色表达可共享和 mode-specific 组件</h3>
-<figure><img src="figures/hardware_design_papers/optimusprime_fig1_transformable_block.png" alt="OptimusPrime Fig.1：transformable block" loading="lazy"><figcaption>OptimusPrime Fig.1：transformable block</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/optimusprime_fig1_transformable_block.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/optimusprime_fig1_transformable_block.png" alt="OptimusPrime Fig.1：transformable block" loading="lazy"></a><figcaption>OptimusPrime Fig.1：transformable block</figcaption></figure>
 <p>原图为 Fig.1，PDF p.4。灰色斜纹是两种模式共享组件，红色虚线是 pipeline mode，绿色是 RTC mode。相同模块上的两套驱动路径直接说明“复用在哪里、额外硬件在哪里”。</p>
 <h3 id="9-3-图-用最小互连支持三种通信语义"><a class="heading-anchor" href="#9-3-图-用最小互连支持三种通信语义" aria-label="Link to this section">#</a>9.3 图：用最小互连支持三种通信语义</h3>
-<figure><img src="figures/hardware_design_papers/optimusprime_fig2_architecture.png" alt="OptimusPrime Fig.2：normal path、outer ring 与 inner ring" loading="lazy"><figcaption>OptimusPrime Fig.2：normal path、outer ring 与 inner ring</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/optimusprime_fig2_architecture.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/optimusprime_fig2_architecture.png" alt="OptimusPrime Fig.2：normal path、outer ring 与 inner ring" loading="lazy"></a><figcaption>OptimusPrime Fig.2：normal path、outer ring 与 inner ring</figcaption></figure>
 <p>原图为 Fig.2，PDF p.5。普通 packet pipeline 沿外圈 MAU 前进；需要 RTC 的 PHV 通过 outer ring 进出 CPU core；core 之间和共享 memory/accelerator 通过 inner ring。图没有画成任意连线，而是把三类通信约束成可实现的拓扑。</p>
 <h3 id="9-4-证据边界与总结"><a class="heading-anchor" href="#9-4-证据边界与总结" aria-label="Link to this section">#</a>9.4 证据边界与总结</h3>
 <p>1.5×来自特定 parameter aggregation 配置，不应概括成所有 workload 的统一加速倍数；网络功能集成更适合用“避免 recirculation 导致的吞吐断崖”来表达。OptimusPrime 的可模仿点是：先找两类架构的公共 datapath，再以少量 mode-specific 控制和简单互连实现运行前资源重分配。</p>
@@ -531,12 +533,12 @@
 </tr>
 </tbody></table>
 <h3 id="10-2-图-先解释为什么要分层"><a class="heading-anchor" href="#10-2-图-先解释为什么要分层" aria-label="Link to this section">#</a>10.2 图：先解释为什么要分层</h3>
-<figure><img src="figures/hardware_design_papers/tassel_fig7_hierarchical_rate_limiter.png" alt="Tassel Fig.7：hierarchical rate limiting" loading="lazy"><figcaption>Tassel Fig.7：hierarchical rate limiting</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/tassel_fig7_hierarchical_rate_limiter.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/tassel_fig7_hierarchical_rate_limiter.png" alt="Tassel Fig.7：hierarchical rate limiting" loading="lazy"></a><figcaption>Tassel Fig.7：hierarchical rate limiting</figcaption></figure>
 <p>原图为 Fig.7，PDF p.6。编号 1–8 把 sort flows、monitor、fetch packets、compute time、filter、reschedule、sort packets、transmit 串成一条循环；上层处理“多但不要求每周期”的 flow，下层处理“少但必须极快”的 packet。</p>
 <h3 id="10-3-图-展示它在真实-rnic-中插在哪里"><a class="heading-anchor" href="#10-3-图-展示它在真实-rnic-中插在哪里" aria-label="Link to this section">#</a>10.3 图：展示它在真实 RNIC 中插在哪里</h3>
-<figure><img src="figures/hardware_design_papers/tassel_fig10_rnic_architecture.png" alt="Tassel Fig.10：Tassel 在 RNIC 中的总体架构" loading="lazy"><figcaption>Tassel Fig.10：Tassel 在 RNIC 中的总体架构</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/tassel_fig10_rnic_architecture.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/tassel_fig10_rnic_architecture.png" alt="Tassel Fig.10：Tassel 在 RNIC 中的总体架构" loading="lazy"></a><figcaption>Tassel Fig.10：Tassel 在 RNIC 中的总体架构</figcaption></figure>
 <p>原图为 Fig.10，PDF p.8。Host QP/WQE、PCIe、rate limiter、DMA、transport 和 MAC 的层次清楚，且蓝色路径说明消息如何从 WQE 到 packet scheduler，再进入 transport。</p>
-<figure><img src="figures/hardware_design_papers/tassel_fig11_timeline_hardware.png" alt="Tassel Fig.11：不同 stage 对应不同数据结构" loading="lazy"><figcaption>Tassel Fig.11：不同 stage 对应不同数据结构</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/tassel_fig11_timeline_hardware.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/tassel_fig11_timeline_hardware.png" alt="Tassel Fig.11：不同 stage 对应不同数据结构" loading="lazy"></a><figcaption>Tassel Fig.11：不同 stage 对应不同数据结构</figcaption></figure>
 <p>原图为 Fig.11，PDF p.9。它先列每个 stage 的 scalability/performance requirement，再把 requirement 映射到 pipelined heap、timing wheel、register array。这是一张很值得模仿的“需求 → 数据结构”设计决策图。</p>
 <h3 id="10-4-可学习的工作总结"><a class="heading-anchor" href="#10-4-可学习的工作总结" aria-label="Link to this section">#</a>10.4 可学习的工作总结</h3>
 <p>Tassel 的关键是把一个看似统一的“排序”问题拆成不同规模和速度要求的三个 stage，不追求用一种复杂结构解决所有阶段。实验正好对应三项目标：Mpps 证明快、16K flows 和资源曲线证明可扩展、100 Kb/s–100 Gb/s 曲线证明准确。</p>
@@ -573,10 +575,10 @@
 </tr>
 </tbody></table>
 <h3 id="11-2-图-在同一张图中标数据所有权和跨-pcie-路径"><a class="heading-anchor" href="#11-2-图-在同一张图中标数据所有权和跨-pcie-路径" aria-label="Link to this section">#</a>11.2 图：在同一张图中标数据所有权和跨 PCIe 路径</h3>
-<figure><img src="figures/hardware_design_papers/rpcnic_fig3_architecture.png" alt="RpcNIC Fig.3：软件栈与硬件架构" loading="lazy"><figcaption>RpcNIC Fig.3：软件栈与硬件架构</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/rpcnic_fig3_architecture.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/rpcnic_fig3_architecture.png" alt="RpcNIC Fig.3：软件栈与硬件架构" loading="lazy"></a><figcaption>RpcNIC Fig.3：软件栈与硬件架构</figcaption></figure>
 <p>原图为 Fig.3，PDF p.5。左侧是 proto compiler/schema，右侧是设备：TLB、off-chip memory、RPC stack、schema table、target-aware deserializer、memory-affinity serializer、compute units 和 NIC transport。不同颜色区分 RPC kernel fields、host kernel fields、schema、serialized data，使“字段在哪里产生、在哪里消费”可追踪。</p>
 <h3 id="11-3-图-用三个反例-方案直接解释数据移动代价"><a class="heading-anchor" href="#11-3-图-用三个反例-方案直接解释数据移动代价" aria-label="Link to this section">#</a>11.3 图：用三个反例/方案直接解释数据移动代价</h3>
-<figure><img src="figures/hardware_design_papers/rpcnic_fig4_serialization_strategies.png" alt="RpcNIC Fig.4：CPU-only、SmartNIC-only 与 memory-affinity serialization" loading="lazy"><figcaption>RpcNIC Fig.4：CPU-only、SmartNIC-only 与 memory-affinity serialization</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/rpcnic_fig4_serialization_strategies.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/rpcnic_fig4_serialization_strategies.png" alt="RpcNIC Fig.4：CPU-only、SmartNIC-only 与 memory-affinity serialization" loading="lazy"></a><figcaption>RpcNIC Fig.4：CPU-only、SmartNIC-only 与 memory-affinity serialization</figcaption></figure>
 <p>原图为 Fig.4，PDF p.5。三个并排子图固定 Host/Accelerator/Network 位置，只改变 copy 和 encoding 的执行位置。这样一张图就把设计动机从抽象的“PCIe 慢”变成了可数的跨边界箭头。</p>
 <h3 id="11-4-证据边界与总结"><a class="heading-anchor" href="#11-4-证据边界与总结" aria-label="Link to this section">#</a>11.4 证据边界与总结</h3>
 <p>资源表覆盖 RpcNIC 基础设施及列出的 serializer/deserializer，不代表所有应用专用 compute kernel 的总资源。RpcNIC 最值得学习的写法是：先画出三种错误/候选数据放置，再让 one-shot DMA、target-aware placement 和 memory-affinity serializer 分别消除一类跨 PCIe 开销；每个机制都有相应微基准，最后再接端到端 workload。</p>
@@ -613,12 +615,12 @@
 </tr>
 </tbody></table>
 <h3 id="12-2-图-用-周期-层级-画出依赖如何被消除"><a class="heading-anchor" href="#12-2-图-用-周期-层级-画出依赖如何被消除" aria-label="Link to this section">#</a>12.2 图：用“周期 × 层级”画出依赖如何被消除</h3>
-<figure><img src="figures/hardware_design_papers/clubheap_fig5_pipeline_overview.png" alt="ClubHeap Fig.5：跨层 ClubHeap pipeline" loading="lazy"><figcaption>ClubHeap Fig.5：跨层 ClubHeap pipeline</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/clubheap_fig5_pipeline_overview.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/clubheap_fig5_pipeline_overview.png" alt="ClubHeap Fig.5：跨层 ClubHeap pipeline" loading="lazy"></a><figcaption>ClubHeap Fig.5：跨层 ClubHeap pipeline</figcaption></figure>
 <p>原图为 Fig.5，PDF p.6。横轴是 cycle，纵轴是 heap level；红色编号追踪不同 operation，READ/CMP/WRITE 用颜色区分。它直观证明 Operation 2 可以在 Operation 1 尚未走完整棵树时进入，而不只是口头说“fully pipelined”。</p>
 <h3 id="12-3-图-处理器内部和-memory-mapping-分开画"><a class="heading-anchor" href="#12-3-图-处理器内部和-memory-mapping-分开画" aria-label="Link to this section">#</a>12.3 图：处理器内部和 memory mapping 分开画</h3>
-<figure><img src="figures/hardware_design_papers/clubheap_fig7_processor.png" alt="ClubHeap Fig.7：单级 processor" loading="lazy"><figcaption>ClubHeap Fig.7：单级 processor</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/clubheap_fig7_processor.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/clubheap_fig7_processor.png" alt="ClubHeap Fig.7：单级 processor" loading="lazy"></a><figcaption>ClubHeap Fig.7：单级 processor</figcaption></figure>
 <p>原图为 Fig.7，PDF p.8。READ、CMP、WRITE、forwarded data、select_child、new_min、update 信号完整展示了单级 datapath。</p>
-<figure><img src="figures/hardware_design_papers/clubheap_fig8_pipeline_structure.png" alt="ClubHeap Fig.8：processor 与 PIFO memory 的组织" loading="lazy"><figcaption>ClubHeap Fig.8：processor 与 PIFO memory 的组织</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/clubheap_fig8_pipeline_structure.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/clubheap_fig8_pipeline_structure.png" alt="ClubHeap Fig.8：processor 与 PIFO memory 的组织" loading="lazy"></a><figcaption>ClubHeap Fig.8：processor 与 PIFO memory 的组织</figcaption></figure>
 <p>原图为 Fig.8，PDF p.9。上层 PIFO 静态划分、深层共享动态 memory 的资源策略直接画在 processor 层级旁边，连接了时序结构和容量结构。</p>
 <h3 id="12-4-证据边界与总结"><a class="heading-anchor" href="#12-4-证据边界与总结" aria-label="Link to this section">#</a>12.4 证据边界与总结</h3>
 <p>ClubHeap 是 scheduler 核心而不是完整交换芯片；200 Mpps 是 FPGA priority-queue prototype，4.83 mm²/17.7% 是 45 nm ASIC 综合，两者不能混成一套硅片实测。它最值得模仿的是从“跨操作依赖”这个阻断流水的根因出发，用不变量重构数据结构，再画出 cycle-level overlap、单级 datapath 和全局 memory mapping 三张互补图。</p>
@@ -655,7 +657,7 @@
 </tr>
 </tbody></table>
 <h3 id="13-2-图-复杂协议栈也要保持可追踪路径"><a class="heading-anchor" href="#13-2-图-复杂协议栈也要保持可追踪路径" aria-label="Link to this section">#</a>13.2 图：复杂协议栈也要保持可追踪路径</h3>
-<figure><img src="figures/hardware_design_papers/balboa_fig1_architecture.png" alt="BALBOA Fig.1：100G RoCEv2 完整硬件架构" loading="lazy"><figcaption>BALBOA Fig.1：100G RoCEv2 完整硬件架构</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/balboa_fig1_architecture.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/balboa_fig1_architecture.png" alt="BALBOA Fig.1：100G RoCEv2 完整硬件架构" loading="lazy"></a><figcaption>BALBOA Fig.1：100G RoCEv2 完整硬件架构</figcaption></figure>
 <p>原图为 Fig.1，PDF p.6。这是本报告中最接近用户参考图风格的一张：CPU/GPU、shell、DMA、协议 pipeline、状态/重传 memory、ICRC、arbitration 和可替换 offload slot 都在同一张图中。蓝/绿路径区分 RX/TX data，编号 1–5 标基础设施，A–D 标可扩展位置。</p>
 <p>复杂总图仍然可读的原因有三点：</p>
 <ol>
@@ -664,7 +666,7 @@
 <li>外部 CPU/GPU/HBM 连接只在对应接口处进入，不让箭头任意穿越全图。</li>
 </ol>
 <h3 id="13-3-图-只挑决定-line-rate-的关键模块下钻"><a class="heading-anchor" href="#13-3-图-只挑决定-line-rate-的关键模块下钻" aria-label="Link to this section">#</a>13.3 图：只挑决定 line rate 的关键模块下钻</h3>
-<figure><img src="figures/hardware_design_papers/balboa_fig3_building_blocks.png" alt="BALBOA Fig.3：flow control、retransmission 与 ICRC" loading="lazy"><figcaption>BALBOA Fig.3：flow control、retransmission 与 ICRC</figcaption></figure>
+<figure><a class="article-image-link" href="figures/hardware_design_papers/balboa_fig3_building_blocks.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/hardware_design_papers/balboa_fig3_building_blocks.png" alt="BALBOA Fig.3：flow control、retransmission 与 ICRC" loading="lazy"></a><figcaption>BALBOA Fig.3：flow control、retransmission 与 ICRC</figcaption></figure>
 <p>原图为 Fig.3，PDF p.8。它没有下钻所有模块，而是选择最影响协议正确性和 line rate 的三个 block：QPN/PSN 状态与 request buffer、HBM fetch/delivery、bitmasking + 多路 CRC。每个 block 都能和总图中的编号对应。</p>
 <h3 id="13-4-证据边界与总结"><a class="heading-anchor" href="#13-4-证据边界与总结" aria-label="Link to this section">#</a>13.4 证据边界与总结</h3>
 <p>1.745 W 是 FPGA 工具的 post-route 功耗估计，不是板上独立测得的芯片功耗；400 MHz 是 timing closure，不等于已经演示 200G。BALBOA 的强项是让 R1–R4 分别落到 bus width/clock、协议模块、资源表和标准接口/slot，并用模块级资源与功耗说明每种协议能力的成本。</p>
@@ -750,7 +752,8 @@
 <li><strong>数据所在位置 vs 计算所在位置</strong>：RpcNIC 按 memory affinity 分工；Tiara 按 HBM/ASIC/x86 原生能力分工。</li>
 </ol>
 <p>设计原则不要写成“高性能、低开销、可扩展”三个口号，而应写成能直接约束模块边界的句子，例如：</p>
-<blockquote class="article-abstract"><p><span class="annotation-label">Abstract:</span> 只有顺序 common path 在 NIC 内全硬件执行；所有需要大 bitmap 的异常状态驻留 host memory，通过有界 metadata queue 交互。</p>
+<blockquote>
+<p>只有顺序 common path 在 NIC 内全硬件执行；所有需要大 bitmap 的异常状态驻留 host memory，通过有界 metadata queue 交互。</p>
 </blockquote>
 <h3 id="14-3-每条原则必须能在图中找到一个模块或一条路径"><a class="heading-anchor" href="#14-3-每条原则必须能在图中找到一个模块或一条路径" aria-label="Link to this section">#</a>14.3 每条原则必须能在图中找到一个模块或一条路径</h3>
 <p>推荐建立如下映射表后再画图：</p>
@@ -880,8 +883,8 @@
         </article>
       </div>
       <nav class="article-end" aria-label="Article navigation">
-        <a href="../../#connectionism">Back to Connectionism</a>
-        <a href="#article">Back to top</a>
+        <a href="../../#connectionism">返回全部笔记</a>
+        <a href="#article">回到顶部 ↑</a>
       </nav>
     </main>
 
@@ -891,14 +894,33 @@
         const article = document.querySelector(".article-body");
         if (!toc || !article) return;
 
+        const disclosure = toc.querySelector("details");
+        const summary = disclosure.querySelector("summary");
+        const currentTitle = summary.querySelector(".toc-current-title");
+        const currentPosition = summary.querySelector(".toc-current-position");
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        let compact = null;
+
         const headings = [...article.querySelectorAll("h2[id], h3[id]")];
         const links = new Map(
           [...toc.querySelectorAll("a[href^='#']")].map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
         );
+        const sectionLinks = [...toc.querySelectorAll("a[data-section-title]")];
+        const parentSections = new Map();
+        let sectionLink = null;
+        for (const heading of headings) {
+          if (heading.tagName === "H2") sectionLink = links.get(heading.id);
+          parentSections.set(heading.id, sectionLink);
+        }
         let previousLink = null;
+        let previousSection = null;
 
         function updateCurrentSection() {
-          const threshold = parseFloat(getComputedStyle(toc).top) + 24;
+          // Keep the reading position stable while the expanded TOC is being browsed.
+          if (compact && disclosure.open) return;
+          const threshold = compact
+            ? summary.getBoundingClientRect().bottom + 24
+            : parseFloat(getComputedStyle(toc).top) + 24;
           let current = headings[0];
 
           for (const heading of headings) {
@@ -907,8 +929,15 @@
           }
 
           const currentLink = links.get(current?.id);
+          const currentSection = parentSections.get(current?.id);
+          if (currentSection && currentSection !== previousSection) {
+            previousSection = currentSection;
+            currentTitle.textContent = currentSection.dataset.sectionTitle;
+            currentTitle.title = currentSection.textContent;
+            currentPosition.textContent = "· " + (sectionLinks.indexOf(currentSection) + 1) + "/" + sectionLinks.length;
+          }
           for (const link of links.values()) {
-            const active = link === links.get(current?.id);
+            const active = link === currentLink;
             link.classList.toggle("is-current", active);
             if (active) link.setAttribute("aria-current", "location");
             else link.removeAttribute("aria-current");
@@ -916,12 +945,12 @@
 
           if (currentLink && currentLink !== previousLink) {
             previousLink = currentLink;
-            if (toc.scrollHeight > toc.clientHeight) {
+            if (!compact && toc.scrollHeight > toc.clientHeight) {
               const targetTop = currentLink.offsetTop - (toc.clientHeight - currentLink.offsetHeight) / 2;
               const maxTop = toc.scrollHeight - toc.clientHeight;
               toc.scrollTo({
                 top: Math.max(0, Math.min(targetTop, maxTop)),
-                behavior: "smooth",
+                behavior: reducedMotion.matches ? "auto" : "smooth",
               });
             }
           }
@@ -936,14 +965,34 @@
           });
         }
 
+        function syncTocLayout() {
+          // Respect both the shared breakpoint and article-specific layouts.
+          toc.classList.remove("is-collapsible");
+          const nextCompact = getComputedStyle(toc).position === "static";
+          toc.classList.toggle("is-collapsible", nextCompact);
+          if (compact !== nextCompact) disclosure.open = !nextCompact;
+          compact = nextCompact;
+          summary.tabIndex = compact ? 0 : -1;
+          scheduleUpdate();
+        }
+
+        summary.addEventListener("click", (event) => {
+          if (!compact) event.preventDefault();
+        });
+        toc.addEventListener("click", (event) => {
+          if (compact && event.target.closest("a[href^='#']")) disclosure.open = false;
+        });
+        disclosure.addEventListener("toggle", scheduleUpdate);
+        window.addEventListener("hashchange", scheduleUpdate);
+        window.addEventListener("load", scheduleUpdate);
         window.addEventListener("scroll", scheduleUpdate, { passive: true });
-        window.addEventListener("resize", scheduleUpdate);
-        updateCurrentSection();
+        window.addEventListener("resize", syncTocLayout);
+        syncTocLayout();
       })();
     </script>
 
     <footer>
-      <p class="footer-meta">@ 2026 Kugai Chen</p>
+      <p class="footer-meta">© 2026 Kugai Chen</p>
       <p class="footer-series">Paper Reading / Chip Design / Inspiration</p>
     </footer>
   </body>

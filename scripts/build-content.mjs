@@ -130,7 +130,7 @@ function renderMarkdown(markdown) {
   html = html.replace(
     /<p><img src="([^"]+)" alt="([^"]*)"(?: title="([^"]*)")?><\/p>/g,
     (_full, source, alt, title) =>
-      `<figure><img src="${source}" alt="${alt}" loading="lazy">` +
+      `<figure><a class="article-image-link" href="${source}" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="${source}" alt="${alt}" loading="lazy"></a>` +
       `<figcaption>${title || alt}</figcaption></figure>`,
   );
 
@@ -139,10 +139,11 @@ function renderMarkdown(markdown) {
     '<a class="external-reference" href="$1" target="_blank" rel="noreferrer">',
   );
 
-  html = html.replace(
-    /<blockquote>\s*<p>/,
-    '<blockquote class="article-abstract"><p><span class="annotation-label">Abstract:</span> ',
-  );
+  const firstSectionOffset = html.search(/<h2\b/);
+  html = html.replace(/<blockquote>\s*<p>/, (match, offset) => {
+    if (firstSectionOffset !== -1 && offset > firstSectionOffset) return match;
+    return '<blockquote class="article-abstract"><p><span class="annotation-label">Abstract:</span> ';
+  });
 
   return { html, headings };
 }
@@ -156,7 +157,7 @@ function formatDate(date, style = "long") {
   return new Intl.DateTimeFormat("en", options).format(value);
 }
 
-function renderToc(headings) {
+function renderToc(headings, language) {
   const sections = [];
   let currentSection = null;
 
@@ -171,6 +172,7 @@ function renderToc(headings) {
 
   const items = sections
     .map((heading) => {
+      const sectionTitle = heading.title.replace(/^\d+[.．、]\s*/u, "").split(/[:：]/u)[0].trim();
       const children = heading.children.length
         ? `<ul>${heading.children
             .map(
@@ -179,14 +181,18 @@ function renderToc(headings) {
             )
             .join("")}</ul>`
         : "";
-      return `<li><a href="#${escapeHtml(heading.id)}">${escapeHtml(heading.title)}</a>${children}</li>`;
+      return `<li><a href="#${escapeHtml(heading.id)}" data-section-title="${escapeHtml(sectionTitle)}">${escapeHtml(heading.title)}</a>${children}</li>`;
     })
     .join("\n");
 
+  if (!sections.length) return "";
+  const isChinese = language.startsWith("zh");
   return `
         <nav class="article-toc" aria-label="Table of contents">
-          <p class="toc-heading">Contents</p>
-          <ul>${items}</ul>
+          <details class="toc-disclosure" open>
+            <summary class="toc-heading"><span>${isChinese ? "目录" : "Contents"}</span><span class="toc-count">${sections.length} ${isChinese ? "个章节" : "sections"}</span><span class="toc-current"><span class="toc-current-title"></span><span class="toc-current-position"></span></span></summary>
+            <ul>${items}</ul>
+          </details>
         </nav>`;
 }
 
@@ -218,8 +224,8 @@ function renderArticle(post) {
     <header class="site-header article-site-header">
       <a class="brand" href="../../">Kugai Chen</a>
       <nav class="article-nav" aria-label="Primary navigation">
+        <a href="../../#connectionism">Notes</a>
         <a href="../../#series">Series</a>
-        <a href="../../#connectionism">Connectionism</a>
       </nav>
     </header>
 
@@ -230,14 +236,14 @@ function renderArticle(post) {
         <p class="article-byline"><span>${author}</span><time datetime="${metadata.date}">${formatDate(metadata.date)}</time></p>
       </header>
       <div class="post-content-shell">
-${renderToc(headings)}
+${renderToc(headings, language)}
         <article class="article-body">
 ${html}
         </article>
       </div>
       <nav class="article-end" aria-label="Article navigation">
-        <a href="../../#connectionism">Back to Connectionism</a>
-        <a href="#article">Back to top</a>
+        <a href="../../#connectionism">返回全部笔记</a>
+        <a href="#article">回到顶部 ↑</a>
       </nav>
     </main>
 
@@ -247,14 +253,33 @@ ${html}
         const article = document.querySelector(".article-body");
         if (!toc || !article) return;
 
+        const disclosure = toc.querySelector("details");
+        const summary = disclosure.querySelector("summary");
+        const currentTitle = summary.querySelector(".toc-current-title");
+        const currentPosition = summary.querySelector(".toc-current-position");
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        let compact = null;
+
         const headings = [...article.querySelectorAll("h2[id], h3[id]")];
         const links = new Map(
           [...toc.querySelectorAll("a[href^='#']")].map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
         );
+        const sectionLinks = [...toc.querySelectorAll("a[data-section-title]")];
+        const parentSections = new Map();
+        let sectionLink = null;
+        for (const heading of headings) {
+          if (heading.tagName === "H2") sectionLink = links.get(heading.id);
+          parentSections.set(heading.id, sectionLink);
+        }
         let previousLink = null;
+        let previousSection = null;
 
         function updateCurrentSection() {
-          const threshold = parseFloat(getComputedStyle(toc).top) + 24;
+          // Keep the reading position stable while the expanded TOC is being browsed.
+          if (compact && disclosure.open) return;
+          const threshold = compact
+            ? summary.getBoundingClientRect().bottom + 24
+            : parseFloat(getComputedStyle(toc).top) + 24;
           let current = headings[0];
 
           for (const heading of headings) {
@@ -263,8 +288,15 @@ ${html}
           }
 
           const currentLink = links.get(current?.id);
+          const currentSection = parentSections.get(current?.id);
+          if (currentSection && currentSection !== previousSection) {
+            previousSection = currentSection;
+            currentTitle.textContent = currentSection.dataset.sectionTitle;
+            currentTitle.title = currentSection.textContent;
+            currentPosition.textContent = "· " + (sectionLinks.indexOf(currentSection) + 1) + "/" + sectionLinks.length;
+          }
           for (const link of links.values()) {
-            const active = link === links.get(current?.id);
+            const active = link === currentLink;
             link.classList.toggle("is-current", active);
             if (active) link.setAttribute("aria-current", "location");
             else link.removeAttribute("aria-current");
@@ -272,12 +304,12 @@ ${html}
 
           if (currentLink && currentLink !== previousLink) {
             previousLink = currentLink;
-            if (toc.scrollHeight > toc.clientHeight) {
+            if (!compact && toc.scrollHeight > toc.clientHeight) {
               const targetTop = currentLink.offsetTop - (toc.clientHeight - currentLink.offsetHeight) / 2;
               const maxTop = toc.scrollHeight - toc.clientHeight;
               toc.scrollTo({
                 top: Math.max(0, Math.min(targetTop, maxTop)),
-                behavior: "smooth",
+                behavior: reducedMotion.matches ? "auto" : "smooth",
               });
             }
           }
@@ -292,14 +324,34 @@ ${html}
           });
         }
 
+        function syncTocLayout() {
+          // Respect both the shared breakpoint and article-specific layouts.
+          toc.classList.remove("is-collapsible");
+          const nextCompact = getComputedStyle(toc).position === "static";
+          toc.classList.toggle("is-collapsible", nextCompact);
+          if (compact !== nextCompact) disclosure.open = !nextCompact;
+          compact = nextCompact;
+          summary.tabIndex = compact ? 0 : -1;
+          scheduleUpdate();
+        }
+
+        summary.addEventListener("click", (event) => {
+          if (!compact) event.preventDefault();
+        });
+        toc.addEventListener("click", (event) => {
+          if (compact && event.target.closest("a[href^='#']")) disclosure.open = false;
+        });
+        disclosure.addEventListener("toggle", scheduleUpdate);
+        window.addEventListener("hashchange", scheduleUpdate);
+        window.addEventListener("load", scheduleUpdate);
         window.addEventListener("scroll", scheduleUpdate, { passive: true });
-        window.addEventListener("resize", scheduleUpdate);
-        updateCurrentSection();
+        window.addEventListener("resize", syncTocLayout);
+        syncTocLayout();
       })();
     </script>
 
     <footer>
-      <p class="footer-meta">@ 2026 Kugai Chen</p>
+      <p class="footer-meta">© 2026 Kugai Chen</p>
       <p class="footer-series">Paper Reading / Chip Design / Inspiration</p>
     </footer>
   </body>
@@ -330,7 +382,10 @@ function renderConnectionism(posts) {
   return posts
     .map(
       (post) => `          <article class="post-item">
-            <time datetime="${post.metadata.date}">${formatDate(post.metadata.date, "short")}</time>
+            <div class="post-meta">
+              <time datetime="${post.metadata.date}">${formatDate(post.metadata.date, "short")}</time>
+              <span class="post-series">${escapeHtml(post.metadata.series)}</span>
+            </div>
             <div class="post-info">
               <h3><a href="./blog/${escapeHtml(post.metadata.slug)}/">${escapeHtml(post.metadata.title)}</a></h3>
               <p>${escapeHtml(post.metadata.description)}</p>

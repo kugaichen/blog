@@ -30,13 +30,13 @@
   /* 目录自身的宽度。 */
   --article-toc-width: 244px;
   /* 目录与正文之间的水平间距。 */
-  --article-toc-gap: 100px;
-  /* 目录未悬停时的透明度，范围为 0 到 1。 */
-  --article-toc-idle-opacity: 0.62;
+  --article-toc-gap: clamp(24px, 3vw, 48px);
+  /* 非当前目录项的不透明度；当前项、悬停项和键盘聚焦项保持清晰。 */
+  --article-toc-idle-opacity: 0.45;
   /* 目录跟随滚动时距离视口顶部的距离。 */
   --article-toc-top: calc(var(--article-header-height) + 2rem);
   /* 文章标题区域与正文内容之间的上方间距。 */
-  --article-content-top-gap: 5.5rem;
+  --article-content-top-gap: 3.5rem;
   /* 顶部固定导航栏的高度。 */
   --article-header-height: 54px;
 
@@ -54,9 +54,12 @@
   /* 三级标题的字号。 */
   --article-h3-size: 1.05rem;
   /* 图片说明字号。 */
-  --article-caption-size: 15px;
+  --article-caption-size: 14px;
+  /* 来源与批注标签使用统一的辅助字号。 */
+  --article-source-size: 12px;
+  --article-label-size: 13px;
   /* 目录字号。 */
-  --article-toc-size: 12px;
+  --article-toc-size: 13px;
 
   /* 正文段落与标题节奏 */
   /* 段落底部间距。 */
@@ -76,7 +79,7 @@
   /* 图片下方的间距。 */
   --article-figure-gap-after: 1.4rem;
   /* 图片与图注之间的间距。 */
-  --article-caption-gap: 0.45rem;
+  --article-caption-gap: 0.65rem;
 
   /* 表格：前后留白、最小列宽、单元格纵向/横向内边距 */
   /* 表格上方的间距。 */
@@ -132,13 +135,11 @@ body {
 }
 
 .article-site-header .brand {
-  font-family: var(--article-sans);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.055em;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
   line-height: 1;
   white-space: nowrap;
-  text-transform: uppercase;
 }
 
 .article-nav {
@@ -243,10 +244,97 @@ body {
 }
 
 .toc-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 0 0 0.8rem;
   color: var(--ink);
   font-size: inherit;
   font-weight: 600;
+  list-style: none;
+}
+
+.toc-heading::-webkit-details-marker {
+  display: none;
+}
+
+.toc-count {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.toc-current {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
+.toc-current-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toc-current-position {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.is-collapsible .toc-disclosure:not([open]) .toc-current {
+  display: flex;
+}
+
+.is-collapsible .toc-disclosure:not([open]) .toc-count {
+  display: none;
+}
+
+.article-page .post-content-shell .article-toc.is-collapsible {
+  position: sticky;
+  top: calc(var(--article-header-height) + 8px);
+  z-index: 10;
+  width: 100%;
+  max-height: calc(100dvh - var(--article-header-height) - 32px);
+  margin: 0 0 2rem;
+  padding: 0;
+  overflow-y: auto;
+  border-block: 1px solid var(--hair);
+  background: var(--paper);
+  scrollbar-width: thin;
+}
+
+.is-collapsible .toc-heading {
+  margin: 0;
+  padding: 14px 2px;
+  cursor: pointer;
+}
+
+.is-collapsible .toc-heading::after {
+  content: "+";
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.is-collapsible details[open] .toc-heading::after {
+  content: "−";
+}
+
+.is-collapsible .toc-disclosure > ul {
+  padding: 4px 2px 16px;
+}
+
+.article-toc.is-collapsible + .article-body :is(h2, h3) {
+  scroll-margin-top: calc(var(--article-header-height) + 5rem);
 }
 
 .article-toc ul {
@@ -255,7 +343,7 @@ body {
   list-style: none;
 }
 
-.article-toc > ul > li {
+.toc-disclosure > ul > li {
   margin-bottom: 0.58rem;
 }
 
@@ -277,12 +365,13 @@ body {
   transition: opacity 160ms ease, color 160ms ease;
 }
 
-.article-toc:hover a,
-.article-toc:focus-within a {
+.article-toc a:hover,
+.article-toc a:focus-visible {
   opacity: 1;
 }
 
 .article-toc a.is-current {
+  color: var(--accent);
   opacity: 1 !important;
 }
 
@@ -444,14 +533,22 @@ body {
   background: #fff;
 }
 
+.article-body .article-image-link {
+  display: block;
+  text-decoration: none;
+  cursor: zoom-in;
+}
+
 .article-body figcaption {
   width: 100%;
   margin: var(--article-caption-gap) 0 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--hair);
   color: var(--muted);
   font-family: var(--article-sans);
   font-size: var(--article-caption-size);
-  line-height: 1.4;
-  text-align: center;
+  line-height: 1.65;
+  text-align: left;
 }
 
 .article-body figcaption::before {
@@ -559,7 +656,7 @@ body > footer {
   font-size: 15px;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1350px) {
   .post-content-shell {
     display: block;
     width: min(var(--article-width), calc(100% - 2.6rem));
@@ -574,12 +671,12 @@ body > footer {
     overflow: visible;
   }
 
-  .article-toc > ul {
+  .toc-disclosure > ul {
     columns: 2;
     column-gap: 2.25rem;
   }
 
-  .article-toc > ul > li {
+  .toc-disclosure > ul > li {
     break-inside: avoid;
   }
 }
@@ -597,16 +694,12 @@ body > footer {
   }
 
   .article-site-header .brand {
-    font-size: 14px;
+    font-size: 18px;
   }
 
   .article-nav {
     gap: 1rem;
     font-size: 14px;
-  }
-
-  .article-nav a:first-child {
-    display: none;
   }
 
   .article-hero {
@@ -628,24 +721,19 @@ body > footer {
   .post-content-shell {
     width: calc(100% - 2rem);
     max-width: calc(100vw - 2rem);
-    margin-top: 4.5rem;
+    margin-top: 2.5rem;
   }
 
   .article-toc {
     margin-bottom: 3.5rem;
   }
 
-  .article-toc > ul {
+  .toc-disclosure > ul {
     columns: 1;
-  }
-
-  .article-toc li ul {
-    display: none;
   }
 
   .article-toc a {
     word-break: break-word;
-    opacity: 1;
   }
 
   .article-body {

@@ -17,8 +17,8 @@
     <header class="site-header article-site-header">
       <a class="brand" href="../../">Kugai Chen</a>
       <nav class="article-nav" aria-label="Primary navigation">
+        <a href="../../#connectionism">Notes</a>
         <a href="../../#series">Series</a>
-        <a href="../../#connectionism">Connectionism</a>
       </nav>
     </header>
 
@@ -31,14 +31,16 @@
       <div class="post-content-shell">
 
         <nav class="article-toc" aria-label="Table of contents">
-          <p class="toc-heading">Contents</p>
-          <ul><li><a href="#单周期微体系结构">单周期微体系结构</a></li>
-<li><a href="#从单周期到流水线">从单周期到流水线</a></li></ul>
+          <details class="toc-disclosure" open>
+            <summary class="toc-heading"><span>目录</span><span class="toc-count">2 个章节</span><span class="toc-current"><span class="toc-current-title"></span><span class="toc-current-position"></span></span></summary>
+            <ul><li><a href="#单周期微体系结构" data-section-title="单周期微体系结构">单周期微体系结构</a></li>
+<li><a href="#从单周期到流水线" data-section-title="从单周期到流水线">从单周期到流水线</a></li></ul>
+          </details>
         </nav>
         <article class="article-body">
 <h2 id="单周期微体系结构"><a class="heading-anchor" href="#单周期微体系结构" aria-label="Link to this section">#</a>单周期微体系结构</h2>
 <p>以 <code>lw x6, -4(x9)</code> 为例，梳理取指、寄存器读取、立即数扩展、地址计算、访存和写回。具体分析见图中标注。</p>
-<figure><img src="figures/user-lw-datapath-enhanced.png" alt="单周期微体系结构：lw 指令的数据通路与个人批注" loading="lazy"><figcaption>单周期微体系结构：lw 指令的数据通路与个人批注</figcaption></figure>
+<figure><a class="article-image-link" href="figures/user-lw-datapath-enhanced.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/user-lw-datapath-enhanced.png" alt="单周期微体系结构：lw 指令的数据通路与个人批注" loading="lazy"></a><figcaption>单周期微体系结构：lw 指令的数据通路与个人批注</figcaption></figure>
 <p><a href="figures/user-lw-datapath-enhanced.png">查看大图</a></p>
 <p>补充说明：</p>
 <ul>
@@ -48,7 +50,7 @@
 </ul>
 <h2 id="从单周期到流水线"><a class="heading-anchor" href="#从单周期到流水线" aria-label="Link to this section">#</a>从单周期到流水线</h2>
 <p>记录无停顿的五级流水线中，写回数据与目标寄存器编号必须保持对应的问题。具体分析见图中标注。</p>
-<figure><img src="figures/user-pipeline-writeback-enhanced.png" alt="单周期变流水线：目标寄存器编号随指令传递" loading="lazy"><figcaption>单周期变流水线：目标寄存器编号随指令传递</figcaption></figure>
+<figure><a class="article-image-link" href="figures/user-pipeline-writeback-enhanced.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/user-pipeline-writeback-enhanced.png" alt="单周期变流水线：目标寄存器编号随指令传递" loading="lazy"></a><figcaption>单周期变流水线：目标寄存器编号随指令传递</figcaption></figure>
 <p><a href="figures/user-pipeline-writeback-enhanced.png">查看大图</a></p>
 <p>注：图中的“写回地址”指目标寄存器编号 <code>rd</code>，不是数据内存地址；它需要随指令经过各级流水线寄存器。</p>
 <p>图源：Harris《Digital Design and Computer Architecture: RISC-V Edition》相关教学数据通路，个人整理与批注。</p>
@@ -56,8 +58,8 @@
         </article>
       </div>
       <nav class="article-end" aria-label="Article navigation">
-        <a href="../../#connectionism">Back to Connectionism</a>
-        <a href="#article">Back to top</a>
+        <a href="../../#connectionism">返回全部笔记</a>
+        <a href="#article">回到顶部 ↑</a>
       </nav>
     </main>
 
@@ -67,14 +69,33 @@
         const article = document.querySelector(".article-body");
         if (!toc || !article) return;
 
+        const disclosure = toc.querySelector("details");
+        const summary = disclosure.querySelector("summary");
+        const currentTitle = summary.querySelector(".toc-current-title");
+        const currentPosition = summary.querySelector(".toc-current-position");
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        let compact = null;
+
         const headings = [...article.querySelectorAll("h2[id], h3[id]")];
         const links = new Map(
           [...toc.querySelectorAll("a[href^='#']")].map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
         );
+        const sectionLinks = [...toc.querySelectorAll("a[data-section-title]")];
+        const parentSections = new Map();
+        let sectionLink = null;
+        for (const heading of headings) {
+          if (heading.tagName === "H2") sectionLink = links.get(heading.id);
+          parentSections.set(heading.id, sectionLink);
+        }
         let previousLink = null;
+        let previousSection = null;
 
         function updateCurrentSection() {
-          const threshold = parseFloat(getComputedStyle(toc).top) + 24;
+          // Keep the reading position stable while the expanded TOC is being browsed.
+          if (compact && disclosure.open) return;
+          const threshold = compact
+            ? summary.getBoundingClientRect().bottom + 24
+            : parseFloat(getComputedStyle(toc).top) + 24;
           let current = headings[0];
 
           for (const heading of headings) {
@@ -83,8 +104,15 @@
           }
 
           const currentLink = links.get(current?.id);
+          const currentSection = parentSections.get(current?.id);
+          if (currentSection && currentSection !== previousSection) {
+            previousSection = currentSection;
+            currentTitle.textContent = currentSection.dataset.sectionTitle;
+            currentTitle.title = currentSection.textContent;
+            currentPosition.textContent = "· " + (sectionLinks.indexOf(currentSection) + 1) + "/" + sectionLinks.length;
+          }
           for (const link of links.values()) {
-            const active = link === links.get(current?.id);
+            const active = link === currentLink;
             link.classList.toggle("is-current", active);
             if (active) link.setAttribute("aria-current", "location");
             else link.removeAttribute("aria-current");
@@ -92,12 +120,12 @@
 
           if (currentLink && currentLink !== previousLink) {
             previousLink = currentLink;
-            if (toc.scrollHeight > toc.clientHeight) {
+            if (!compact && toc.scrollHeight > toc.clientHeight) {
               const targetTop = currentLink.offsetTop - (toc.clientHeight - currentLink.offsetHeight) / 2;
               const maxTop = toc.scrollHeight - toc.clientHeight;
               toc.scrollTo({
                 top: Math.max(0, Math.min(targetTop, maxTop)),
-                behavior: "smooth",
+                behavior: reducedMotion.matches ? "auto" : "smooth",
               });
             }
           }
@@ -112,14 +140,34 @@
           });
         }
 
+        function syncTocLayout() {
+          // Respect both the shared breakpoint and article-specific layouts.
+          toc.classList.remove("is-collapsible");
+          const nextCompact = getComputedStyle(toc).position === "static";
+          toc.classList.toggle("is-collapsible", nextCompact);
+          if (compact !== nextCompact) disclosure.open = !nextCompact;
+          compact = nextCompact;
+          summary.tabIndex = compact ? 0 : -1;
+          scheduleUpdate();
+        }
+
+        summary.addEventListener("click", (event) => {
+          if (!compact) event.preventDefault();
+        });
+        toc.addEventListener("click", (event) => {
+          if (compact && event.target.closest("a[href^='#']")) disclosure.open = false;
+        });
+        disclosure.addEventListener("toggle", scheduleUpdate);
+        window.addEventListener("hashchange", scheduleUpdate);
+        window.addEventListener("load", scheduleUpdate);
         window.addEventListener("scroll", scheduleUpdate, { passive: true });
-        window.addEventListener("resize", scheduleUpdate);
-        updateCurrentSection();
+        window.addEventListener("resize", syncTocLayout);
+        syncTocLayout();
       })();
     </script>
 
     <footer>
-      <p class="footer-meta">@ 2026 Kugai Chen</p>
+      <p class="footer-meta">© 2026 Kugai Chen</p>
       <p class="footer-series">Paper Reading / Chip Design / Inspiration</p>
     </footer>
   </body>

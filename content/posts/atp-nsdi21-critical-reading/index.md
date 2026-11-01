@@ -16,9 +16,9 @@ language: zh-CN
  */
 /* Center the complete figures-and-notes column, with room for a separate TOC. */
 .article-page:has(.atp-reading) {
-  --article-width: 1040px;
+  --article-width: clamp(960px, 76vw, 1120px);
   --article-toc-width: 200px;
-  --article-toc-gap: 96px;
+  --article-toc-gap: 48px;
 }
 .article-page:has(.atp-reading) .post-content-shell {
   grid-template-columns: minmax(0, 1fr) minmax(0, var(--article-width)) minmax(0, 1fr);
@@ -198,7 +198,7 @@ language: zh-CN
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 .atp-reading .atp-source-pair {
   display: grid;
@@ -209,35 +209,50 @@ language: zh-CN
 .atp-reading .atp-source-card {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid var(--hair);
   border-radius: 0;
-  padding: 0 0 0.85rem;
+  padding: 0;
+}
+.atp-reading .atp-source-card figure {
+  margin: 0 auto;
+}
+.atp-reading .atp-source-card figure + figure {
+  margin-top: 1.5rem;
+}
+.atp-reading figcaption::before {
+  content: "Note figure " counter(figure-counter) " · ";
 }
 .atp-reading .atp-pdf-tag {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 0 0 0.65rem;
-  padding: 0.3rem 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem 0.85rem;
+  margin: 0 0 0.85rem;
+  padding: 0 0 0.65rem;
   background: transparent;
   border-bottom: 1px solid var(--hair);
   border-radius: 0;
   font-family: var(--article-sans);
-  font-size: 12px;
+  font-size: var(--article-source-size);
   font-weight: 500;
   color: var(--ink-soft, #504945);
-  line-height: 1.4;
+  line-height: 1.65;
 }
 .atp-reading .atp-pdf-tag a {
   font-family: var(--article-mono);
-  font-size: 11px;
-  color: var(--muted, #676767);
+  font-size: var(--article-source-size);
+  color: var(--ink-soft);
   text-decoration: none;
+  white-space: nowrap;
 }
-.atp-reading .atp-pdf-tag a:hover {
-  color: var(--ink, #282828);
+.atp-reading .atp-source-pair .atp-pdf-tag {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.3rem;
+}
+.atp-reading .atp-pdf-tag a:hover,
+.atp-reading .atp-pdf-tag a:focus-visible {
+  color: var(--accent);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .atp-reading .atp-source-card p {
   margin: 0;
@@ -271,19 +286,28 @@ language: zh-CN
   border-left: 1px solid var(--hair);
 }
 .atp-reading .atp-notes :is(p, li) {
-  text-align: justify;
-  text-justify: inter-ideograph;
+  text-align: left;
 }
 .atp-reading .atp-note-label,
 .atp-reading .atp-notes p.atp-note-label {
-  margin: 0 0 0.85rem;
+  margin: 0 0 1.1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--hair);
   font-family: var(--article-sans);
-  font-size: 0.82rem;
+  font-size: var(--article-label-size);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted, #676767);
-  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--ink);
+  line-height: 1.65;
+}
+.atp-reading .atp-note-label::before {
+  content: "READING NOTES";
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
 }
 .atp-reading .atp-chain {
   display: flex;
@@ -291,10 +315,9 @@ language: zh-CN
   gap: 0;
 }
 .atp-reading .atp-step {
-  padding: 0.3rem 0 0.3rem 0.85rem;
+  padding: 0.3rem 0;
   background: transparent;
   border: 0;
-  border-left: 1px solid var(--hair);
   border-radius: 0;
   font-family: inherit;
   font-size: inherit;
@@ -319,34 +342,36 @@ language: zh-CN
 }
 .atp-reading .atp-step-Reflect {
   background: transparent;
-  border-left-color: color-mix(in srgb, var(--ink) 38%, transparent);
+  padding-left: 0.85rem;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .atp-reading .atp-tag {
-  display: inline-block;
-  margin-right: 0.4rem;
+  display: block;
+  margin: 0 0 0.3rem;
   padding: 0;
   background: transparent;
   border-radius: 0;
   font-family: var(--article-sans);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--article-source-size);
+  font-weight: 500;
+  line-height: 1.65;
   color: var(--muted);
   vertical-align: baseline;
 }
 .atp-reading .atp-step-Reflect .atp-tag {
   background: transparent;
-  color: var(--ink-soft);
+  color: var(--accent);
 }
 .atp-reading .atp-arrow {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding-left: 0.85rem;
-  height: 2rem;
+  padding-left: 0;
+  height: 1.4rem;
   margin: 0.2rem 0;
   font-family: var(--article-sans);
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 400;
   color: rgba(140, 140, 140, 0.65);
   user-select: none;
   line-height: 1;
@@ -364,11 +389,9 @@ language: zh-CN
   color: var(--ink-soft, #504945);
 }
 
-/* Right-hand notes use the reference article's single bilingual body style. */
+/* Preserve the bilingual body style without flattening the metadata hierarchy. */
 .atp-reading .atp-notes,
-.atp-reading .atp-notes :is(p, li, span, strong, em, i, code, u),
-.atp-reading .atp-notes .atp-note-label,
-.atp-reading .atp-notes .atp-tag,
+.atp-reading .atp-notes :is(strong, em, i, code, u),
 .atp-reading .atp-notes .atp-caution {
   font-family: var(--article-serif);
   font-size: inherit;
@@ -438,7 +461,18 @@ language: zh-CN
   }
 }
 
-@media (max-width: 780px) {
+/* Leave room for the compact TOC above a sticky commentary column. */
+@media (min-width: 1101px) and (max-width: 1700px) {
+  .atp-reading:not(.atp-wide-mode) .atp-notes {
+    top: calc(var(--article-header-height) + 5rem);
+    max-height: calc(100dvh - var(--article-header-height) - 6.5rem);
+  }
+}
+
+@media (max-width: 1100px) {
+  .article-page:has(.atp-reading) {
+    --article-width: 730px;
+  }
   .atp-reading .atp-spread {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.25rem;
@@ -451,6 +485,16 @@ language: zh-CN
     max-height: none;
     overflow-y: visible;
     padding-left: 0.9rem;
+  }
+  .atp-reading .atp-view-btns {
+    display: none;
+  }
+}
+
+@media (max-width: 780px) {
+  .atp-reading .atp-pdf-tag {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
   }
   .atp-reading .atp-spec-grid {
     grid-template-columns: minmax(0, 1fr);

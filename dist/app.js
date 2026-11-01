@@ -43,6 +43,9 @@
   let cssHeight = 720;
   let elapsed = 0;
   let lastTimestamp = null;
+  let animationFrame = null;
+  let canvasVisible = true;
+  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const directionKeys = ["px", "nx", "py", "ny", "pz", "nz"];
   const directionVectors = {
@@ -514,21 +517,40 @@
   }
 
   function tick(timestamp) {
+    animationFrame = null;
+    if (document.hidden || !canvasVisible || motionPreference.matches) return;
     if (lastTimestamp !== null) {
       elapsed += (timestamp - lastTimestamp) / 1000;
     }
     if (elapsed >= DURATION) elapsed %= DURATION;
     lastTimestamp = timestamp;
     drawFrame(elapsed);
-    window.requestAnimationFrame(tick);
+    animationFrame = window.requestAnimationFrame(tick);
   }
 
-  document.addEventListener("visibilitychange", () => {
+  function updatePlayback() {
+    if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    animationFrame = null;
     lastTimestamp = null;
+    if (motionPreference.matches) {
+      elapsed = DURATION - 0.01;
+      drawFrame(elapsed);
+    } else if (!document.hidden && canvasVisible) {
+      animationFrame = window.requestAnimationFrame(tick);
+    }
+  }
+
+  document.addEventListener("visibilitychange", updatePlayback);
+  motionPreference.addEventListener("change", updatePlayback);
+
+  const visibilityObserver = new IntersectionObserver(([entry]) => {
+    canvasVisible = entry.isIntersecting;
+    updatePlayback();
   });
+  visibilityObserver.observe(canvas);
 
   const resizeObserver = new ResizeObserver(resizeCanvas);
   resizeObserver.observe(canvas);
   resizeCanvas();
-  window.requestAnimationFrame(tick);
+  updatePlayback();
 })();
