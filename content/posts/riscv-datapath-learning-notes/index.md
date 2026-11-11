@@ -90,3 +90,13 @@ add x6, x5, x3
 本节数值与指令来自学习讨论；五级流水线的加载依赖及停顿机制参见[Harris 第7章配套讲义，第118–120页](https://pages.hmc.edu/harris/class/e85/DDCArv_Ch7.pdf#page=118)。
 
 图源：Harris《Digital Design and Computer Architecture: RISC-V Edition》相关教学数据通路，个人整理与批注。
+
+## 记分牌的硬件实现
+
+经典记分牌用**寄存器写者表**记录每个寄存器的在途写者，用**功能单元状态表**记录指令的源和目的寄存器，以及各源操作数在等哪个单元写回。[Hennessy 与 Patterson，第 6 版附录 C §C.7](https://shop.elsevier.com/books/book-companion/9780128119051)
+
+- **发射。** 功能单元空闲且目的寄存器没有在途写者时，用源寄存器编号查写者表，锁存依赖，并登记目的寄存器的新写者。
+- **写回。** 生产者实际写回后，记分牌用它的功能单元编号匹配等待项，将匹配的操作数标为就绪。
+- **读取。** 两个源操作数均就绪且获得读端口后，寄存器堆把数值送到功能单元，指令开始执行。
+
+![经典记分牌的硬件实现，展示发射登记、写回匹配和操作数读取](figures/scoreboard-hardware.png)

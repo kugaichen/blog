@@ -32,10 +32,11 @@
 
         <nav class="article-toc" aria-label="Table of contents">
           <details class="toc-disclosure" open>
-            <summary class="toc-heading"><span>目录</span><span class="toc-count">3 个章节</span><span class="toc-current"><span class="toc-current-title"></span><span class="toc-current-position"></span></span></summary>
+            <summary class="toc-heading"><span>目录</span><span class="toc-count">4 个章节</span><span class="toc-current"><span class="toc-current-title"></span><span class="toc-current-position"></span></span></summary>
             <ul><li><a href="#单周期微体系结构" data-section-title="单周期微体系结构">单周期微体系结构</a></li>
 <li><a href="#从单周期到流水线" data-section-title="从单周期到流水线">从单周期到流水线</a></li>
-<li><a href="#旁路的边界-load-use-hazard" data-section-title="旁路的边界">旁路的边界：load-use hazard</a><ul><li><a href="#ex-mem-中保存的是地址">EX/MEM 中保存的是地址</a></li><li><a href="#为什么不能直接使用本周期-mem-读出的数据">为什么不能直接使用本周期 MEM 读出的数据</a></li><li><a href="#停顿一个周期-再旁路">停顿一个周期，再旁路</a></li></ul></li></ul>
+<li><a href="#旁路的边界-load-use-hazard" data-section-title="旁路的边界">旁路的边界：load-use hazard</a><ul><li><a href="#ex-mem-中保存的是地址">EX/MEM 中保存的是地址</a></li><li><a href="#为什么不能直接使用本周期-mem-读出的数据">为什么不能直接使用本周期 MEM 读出的数据</a></li><li><a href="#停顿一个周期-再旁路">停顿一个周期，再旁路</a></li></ul></li>
+<li><a href="#记分牌的硬件实现" data-section-title="记分牌的硬件实现">记分牌的硬件实现</a></li></ul>
           </details>
         </nav>
         <article class="article-body">
@@ -120,6 +121,14 @@ add x6, x5, x3
 <p><strong>本例的处理是“停顿一个周期，再旁路”。</strong> 如果两条指令之间原本就有一条无关指令，使 <code>add</code> 到第5周期才进入 EX，则在相同假设下无需额外停顿，仍可从 MEM/WB 取得加载结果。</p>
 <p>本节数值与指令来自学习讨论；五级流水线的加载依赖及停顿机制参见<a class="external-reference" href="https://pages.hmc.edu/harris/class/e85/DDCArv_Ch7.pdf#page=118" target="_blank" rel="noreferrer">Harris 第7章配套讲义，第118–120页</a>。</p>
 <p>图源：Harris《Digital Design and Computer Architecture: RISC-V Edition》相关教学数据通路，个人整理与批注。</p>
+<h2 id="记分牌的硬件实现"><a class="heading-anchor" href="#记分牌的硬件实现" aria-label="Link to this section">#</a>记分牌的硬件实现</h2>
+<p>经典记分牌用<strong>寄存器写者表</strong>记录每个寄存器的在途写者，用<strong>功能单元状态表</strong>记录指令的源和目的寄存器，以及各源操作数在等哪个单元写回。<a class="external-reference" href="https://shop.elsevier.com/books/book-companion/9780128119051" target="_blank" rel="noreferrer">Hennessy 与 Patterson，第 6 版附录 C §C.7</a></p>
+<ul>
+<li><strong>发射。</strong> 功能单元空闲且目的寄存器没有在途写者时，用源寄存器编号查写者表，锁存依赖，并登记目的寄存器的新写者。</li>
+<li><strong>写回。</strong> 生产者实际写回后，记分牌用它的功能单元编号匹配等待项，将匹配的操作数标为就绪。</li>
+<li><strong>读取。</strong> 两个源操作数均就绪且获得读端口后，寄存器堆把数值送到功能单元，指令开始执行。</li>
+</ul>
+<figure><a class="article-image-link" href="figures/scoreboard-hardware.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/scoreboard-hardware.png" alt="经典记分牌的硬件实现，展示发射登记、写回匹配和操作数读取" loading="lazy"></a><figcaption>经典记分牌的硬件实现，展示发射登记、写回匹配和操作数读取</figcaption></figure>
 
         </article>
       </div>
