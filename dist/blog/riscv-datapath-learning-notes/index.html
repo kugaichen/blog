@@ -122,13 +122,30 @@ add x6, x5, x3
 <p>本节数值与指令来自学习讨论；五级流水线的加载依赖及停顿机制参见<a class="external-reference" href="https://pages.hmc.edu/harris/class/e85/DDCArv_Ch7.pdf#page=118" target="_blank" rel="noreferrer">Harris 第7章配套讲义，第118–120页</a>。</p>
 <p>图源：Harris《Digital Design and Computer Architecture: RISC-V Edition》相关教学数据通路，个人整理与批注。</p>
 <h2 id="记分牌的硬件实现"><a class="heading-anchor" href="#记分牌的硬件实现" aria-label="Link to this section">#</a>记分牌的硬件实现</h2>
-<p>经典记分牌用<strong>寄存器写者表</strong>记录每个寄存器的在途写者，用<strong>功能单元状态表</strong>记录指令的源和目的寄存器，以及各源操作数在等哪个单元写回。<a class="external-reference" href="https://shop.elsevier.com/books/book-companion/9780128119051" target="_blank" rel="noreferrer">Hennessy 与 Patterson，第 6 版附录 C §C.7</a></p>
-<ul>
-<li><strong>发射。</strong> 功能单元空闲且目的寄存器没有在途写者时，用源寄存器编号查写者表，锁存依赖，并登记目的寄存器的新写者。</li>
-<li><strong>写回。</strong> 生产者实际写回后，记分牌用它的功能单元编号匹配等待项，将匹配的操作数标为就绪。</li>
-<li><strong>读取。</strong> 两个源操作数均就绪且获得读端口后，寄存器堆把数值送到功能单元，指令开始执行。</li>
-</ul>
-<figure><a class="article-image-link" href="figures/scoreboard-hardware.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/scoreboard-hardware.png" alt="经典记分牌的硬件实现，展示发射登记、写回匹配和操作数读取" loading="lazy"></a><figcaption>经典记分牌的硬件实现，展示发射登记、写回匹配和操作数读取</figcaption></figure>
+<figure><a class="article-image-link" href="figures/scoreboard-hardware.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/scoreboard-hardware.png" alt="带记分牌的处理器结构，左侧为寄存器堆，右侧为功能单元，下方为记分牌" loading="lazy"></a><figcaption>带记分牌的处理器结构，左侧为寄存器堆，右侧为功能单元，下方为记分牌</figcaption></figure>
+<p>图按 Hennessy 与 Patterson《Computer Architecture: A Quantitative Approach》第 6 版附录 C §C.7 的教材图清晰化。上方数据总线传输操作数和运算结果，下方控制／状态线在记分牌、寄存器堆和功能单元之间传递状态与控制信号。<a class="external-reference" href="https://shop.elsevier.com/books/book-companion/9780128119051" target="_blank" rel="noreferrer">教材配套页</a></p>
+<pre><code class="language-asm">fmul.d f0, f2, f4    # 乘法单元 MUL0 将结果写入 f0
+fadd.d f6, f0, f8    # 加法单元 ADD0 要读 f0 和 f8
+</code></pre>
+<p><strong>发射时查表并锁存。</strong> 乘法发射后，寄存器写者表中 <code>writer[f0] = MUL0</code>。本例假设 <code>f8</code> 已就绪。加法译码后，组合逻辑用 <code>f0</code>、<code>f8</code> 和 <code>f6</code> 的寄存器编号并行查表。若 <code>ADD0</code> 空闲且 <code>f6</code> 没有在途写者，加法在时钟沿占用 <code>ADD0</code>。这次发射在同一个时钟沿更新两张表。</p>
+<table>
+<thead>
+<tr>
+<th>写入位置</th>
+<th>锁存内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>功能单元状态表的 <code>ADD0</code> 项</td>
+<td>源寄存器 <code>f0, f8</code>，目的寄存器 <code>f6</code>。第一个源等待 <code>MUL0</code>，第二个源已就绪。</td>
+</tr>
+<tr>
+<td>寄存器写者表的 <code>f6</code> 项</td>
+<td><code>writer[f6] = ADD0</code>。后续读取 <code>f6</code> 的指令可以查到生产者。</td>
+</tr>
+</tbody></table>
+<p><strong>写回时匹配生产者。</strong> <code>MUL0</code> 实际把结果写入寄存器堆时，记分牌收到实际写回信号和单元编号。比较器将编号与各个等待标签比较。<code>ADD0</code> 的第一个源匹配 <code>MUL0</code>，所以在写回沿被标为就绪。<code>f0</code> 的在途写者记录同时清除。</p>
+<p><strong>操作数就绪后驱动读端口。</strong> 当 <code>ADD0</code> 仍处于等待读取状态、两个源都就绪且读端口授权给它，记分牌用锁存的 <code>f0</code>、<code>f8</code> 编号选择寄存器堆读地址。两个操作数经数据总线送到 <code>ADD0</code>，加法随后进入执行。</p>
 
         </article>
       </div>
