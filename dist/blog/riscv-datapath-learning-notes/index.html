@@ -37,7 +37,7 @@
 <li><a href="#从单周期到流水线" data-section-title="从单周期到流水线">从单周期到流水线</a></li>
 <li><a href="#旁路的边界-load-use-hazard" data-section-title="旁路的边界">旁路的边界：load-use hazard</a><ul><li><a href="#ex-mem-中保存的是地址">EX/MEM 中保存的是地址</a></li><li><a href="#为什么不能直接使用本周期-mem-读出的数据">为什么不能直接使用本周期 MEM 读出的数据</a></li><li><a href="#停顿一个周期-再旁路">停顿一个周期，再旁路</a></li></ul></li>
 <li><a href="#记分牌的硬件实现" data-section-title="记分牌的硬件实现">记分牌的硬件实现</a></li>
-<li><a href="#从建立与保持时间到流水切分" data-section-title="从建立与保持时间到流水切分">从建立与保持时间到流水切分</a><ul><li><a href="#采样沿前后-分别在等什么">采样沿前后，分别在等什么？</a></li><li><a href="#verilog-描述采样关系-时序报告给出物理余量">Verilog 描述采样关系，时序报告给出物理余量</a></li><li><a href="#结果提前稳定了-延迟为什么还要数到采样沿">结果提前稳定了，延迟为什么还要数到采样沿？</a></li></ul></li></ul>
+<li><a href="#从建立与保持时间到流水切分" data-section-title="从建立与保持时间到流水切分">从建立与保持时间到流水切分</a><ul><li><a href="#图-3-37-为什么输入已经变了-输出还没变">图 3.37｜为什么输入已经变了，输出还没变？</a></li><li><a href="#图-3-39-新值最迟什么时候要到">图 3.39｜新值最迟什么时候要到？</a></li><li><a href="#图-3-40-新值最早什么时候可以到">图 3.40｜新值最早什么时候可以到？</a></li><li><a href="#图-3-43-为什么越短的路径也可能出问题">图 3.43｜为什么越短的路径也可能出问题？</a></li><li><a href="#写-verilog-时-怎么知道有没有-hold-违例">写 Verilog 时，怎么知道有没有 hold 违例？</a></li><li><a href="#流水线切得更细-第一笔会更快吗">流水线切得更细，第一笔会更快吗？</a></li></ul></li></ul>
           </details>
         </nav>
         <article class="article-body">
@@ -148,47 +148,37 @@ fadd.d f6, f0, f8    # 加法单元 ADD0 要读 f0 和 f8
 <p><strong>写回时匹配生产者。</strong> <code>MUL0</code> 实际把结果写入寄存器堆时，记分牌收到实际写回信号和单元编号。比较器将编号与各个等待标签比较。<code>ADD0</code> 的第一个源匹配 <code>MUL0</code>，所以在写回沿被标为就绪。<code>f0</code> 的在途写者记录同时清除。</p>
 <p><strong>操作数就绪后驱动读端口。</strong> 当 <code>ADD0</code> 仍处于等待读取状态、两个源都就绪且读端口授权给它，记分牌用锁存的 <code>f0</code>、<code>f8</code> 编号选择寄存器堆读地址。两个操作数经数据总线送到 <code>ADD0</code>，加法随后进入执行。</p>
 <h2 id="从建立与保持时间到流水切分"><a class="heading-anchor" href="#从建立与保持时间到流水切分" aria-label="Link to this section">#</a>从建立与保持时间到流水切分</h2>
-<h3 id="采样沿前后-分别在等什么"><a class="heading-anchor" href="#采样沿前后-分别在等什么" aria-label="Link to this section">#</a>采样沿前后，分别在等什么？</h3>
-<pre><code class="language-text">R1 的 Q ──→ 组合逻辑 ──→ R2 的 D
-</code></pre>
-<figure><a class="article-image-link" href="figures/timing-337.svg" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-337.svg" alt="图 3.37 重绘，建立与保持窗口和输出变化范围" loading="lazy"></a><figcaption>图 3.37 重绘，建立与保持窗口和输出变化范围</figcaption></figure>
-<p>两个寄存器共用一个时钟。当前上升沿，R2 要采到 D 端已有的值，同时 R1 发出下一笔数据。R2 的输入在当前沿后还要保持旧值一段时间，并在下一个沿前提前稳定到新值。</p>
-<table>
-<thead>
-<tr>
-<th>要检查的事</th>
-<th>看哪条时间线</th>
-<th>时钟沿对齐时的条件</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>建立（setup）</td>
-<td>R1 的 Q 最迟在 <code>t_pcq</code> 后稳定，新值最多再经过 <code>t_pd</code> 到达 R2 的 D</td>
-<td><code>T_c ≥ t_pcq + t_pd + t_setup</code></td>
-</tr>
-<tr>
-<td>保持（hold）</td>
-<td>R1 的 Q 最早在 <code>t_ccq</code> 后变化，变化最快再经过 <code>t_cd</code> 到达 R2 的 D</td>
-<td><code>t_ccq + t_cd ≥ t_hold</code></td>
-</tr>
-</tbody></table>
-<p><strong>为什么单个触发器的波形里，输入已经变了，输出还没变？</strong> <code>t_hold</code> 描述 D 端要保持多久，<code>t_ccq</code> 描述 Q 端最早何时变化。如果 <code>t_hold &lt; t_ccq</code>，输入可以先动，输出仍在反映上一笔。把两个寄存器接起来后，要用 <strong>R1 的 Q</strong> 计算最快到达时间，用 <strong>R2 的 D</strong> 检查保持窗口。</p>
-<figure><a class="article-image-link" href="figures/timing-339.svg" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-339.svg" alt="图 3.39 重绘，下一采样沿前的最大延迟预算" loading="lazy"></a><figcaption>图 3.39 重绘，下一采样沿前的最大延迟预算</figcaption></figure>
-<p><strong>为什么组合逻辑的延迟写成减法？</strong> 从下一采样沿往前减去 <code>t_setup</code>，得到 D₂ 的稳定截止时间。再减去 Q₁ 最迟出发所需的 <code>t_pcq</code>，剩下的是组合逻辑的最大允许延迟。等号表示刚好用完预算。</p>
-<figure><a class="article-image-link" href="figures/timing-340.svg" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-340.svg" alt="图 3.40 重绘，当前沿后的最小延迟与保持窗口" loading="lazy"></a><figcaption>图 3.40 重绘，当前沿后的最小延迟与保持窗口</figcaption></figure>
-<p><strong>两张图是角度不同，还是画错了？这里看的是第二个上升沿吗？</strong> 图 3.40 的两段最小延迟都从左侧当前沿开始追踪。图 3.37 若单独看 R2，图中的 Q 是 Q₂。到了两级路径，计算新变化什么时候抵达 D₂，要从上游 R1 的 Q₁ 开始。两图用的是同一个 <code>t_ccq</code> 定义，测量对象取决于所画的寄存器。</p>
-<figure><a class="article-image-link" href="figures/timing-343.svg" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-343.svg" alt="图 3.43 的路径时序摘要，含最早变化、最长路径与最短路径" loading="lazy"></a><figcaption>图 3.43 的路径时序摘要，含最早变化、最长路径与最短路径</figcaption></figure>
-<p><strong>为什么最短路径也会违例？</strong> 教材例子中，R1 的输出最早在 <code>30 ps</code> 开始变化，变化经过一个门，最早再过 <code>25 ps</code> 就能到达 R2 的 D。此时只过了 <code>55 ps</code>，R2 要求旧值保留到 <code>60 ps</code>，因此 hold slack 是 <code>−5 ps</code>。在这个例子里，旧值会在保持窗口结束前失去保证。</p>
-<h3 id="verilog-描述采样关系-时序报告给出物理余量"><a class="heading-anchor" href="#verilog-描述采样关系-时序报告给出物理余量" aria-label="Link to this section">#</a>Verilog 描述采样关系，时序报告给出物理余量</h3>
+<p>两个寄存器用同一个时钟。每到上升沿，R2 采样输入端已有的数据，R1 同时采样自己的输入，随后从 Q 端送出下一笔。R1 发出的新值<strong>不能太早到</strong>，否则会干扰 R2 这一次采样。它也<strong>不能太晚到</strong>，否则会错过下一次采样。</p>
+<h3 id="图-3-37-为什么输入已经变了-输出还没变"><a class="heading-anchor" href="#图-3-37-为什么输入已经变了-输出还没变" aria-label="Link to this section">#</a>图 3.37｜为什么输入已经变了，输出还没变？</h3>
+<figure><a class="article-image-link" href="figures/timing-337-book.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-337-book.png" alt="图 3.37 单个触发器的建立和保持窗口，以及输出的最早变化和最晚稳定时刻" loading="lazy"></a><figcaption>图 3.37 单个触发器的建立和保持窗口，以及输出的最早变化和最晚稳定时刻</figcaption></figure>
+<p>先看输入 D。它在上升沿前要提前稳定 <code>t_setup</code>，在沿后还要保持 <code>t_hold</code>。再看输出 Q。触发器在上升沿采到的数据，最早经过 <code>t_ccq</code> 才会影响 Q，最迟经过 <code>t_pcq</code> 后 Q 会稳定。</p>
+<p>图里 D 的保持窗口早于 Q 的最早变化时刻结束，所以 D 可以为下一拍变化，这一拍采到的值随后才反映到 Q 上。两者都从同一个上升沿计时，分别看的是输入和输出。</p>
+<h3 id="图-3-39-新值最迟什么时候要到"><a class="heading-anchor" href="#图-3-39-新值最迟什么时候要到" aria-label="Link to this section">#</a>图 3.39｜新值最迟什么时候要到？</h3>
+<figure><a class="article-image-link" href="figures/timing-339-book.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-339-book.png" alt="图 3.39 从 R1 的当前上升沿算到 R2 的下一上升沿" loading="lazy"></a><figcaption>图 3.39 从 R1 的当前上升沿算到 R2 的下一上升沿</figcaption></figure>
+<p>从图的右边往左看。R2 在<strong>下一个上升沿</strong>采样，所以 D₂ 最晚要在 <code>T_c − t_setup</code> 时稳定。再扣掉 R1 从当前沿到 Q₁ 稳定所需的 <code>t_pcq</code>，剩下的就是组合逻辑可用的时间。</p>
+<p><strong>为什么这里用减法？</strong> 因为在算预算。实际组合逻辑的最大延迟要满足 <code>t_pd ≤ T_c − t_pcq − t_setup</code>。刚好用完预算时才取等号。</p>
+<h3 id="图-3-40-新值最早什么时候可以到"><a class="heading-anchor" href="#图-3-40-新值最早什么时候可以到" aria-label="Link to this section">#</a>图 3.40｜新值最早什么时候可以到？</h3>
+<figure><a class="article-image-link" href="figures/timing-340-book.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-340-book.png" alt="图 3.40 从当前上升沿追踪 R1 的变化最早何时抵达 R2" loading="lazy"></a><figcaption>图 3.40 从当前上升沿追踪 R1 的变化最早何时抵达 R2</figcaption></figure>
+<p>这次看<strong>左边的上升沿</strong>。R2 此刻要采到 D₂ 的旧值，所以 D₂ 至少要保持到 <code>t_hold</code>。同一个沿，R1 已经开始发出新数据。Q₁ 最早经过 <code>t_ccq</code> 会动，变化再经过组合逻辑的最小延迟 <code>t_cd</code> 才可能到达 D₂。时钟沿对齐时，保持约束就是 <code>t_ccq + t_cd ≥ t_hold</code>。图 3.40 里，D₂ 的第一处交叉在 <code>t_hold</code> 箭头终点右边，所以这条路径满足保持要求。</p>
+<p><strong>这和图 3.37 矛盾吗？</strong> 如果图 3.37 画的是 R2，它的 Q 是 R2 自己的输出 Q₂。图 3.40 要计算 R2 的输入 D₂ 何时受影响，所以从上游 R1 的输出 Q₁ 算起。</p>
+<h3 id="图-3-43-为什么越短的路径也可能出问题"><a class="heading-anchor" href="#图-3-43-为什么越短的路径也可能出问题" aria-label="Link to this section">#</a>图 3.43｜为什么越短的路径也可能出问题？</h3>
+<figure><a class="article-image-link" href="figures/timing-343-book.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/timing-343-book.png" alt="图 3.43 多路径时序，含一般波形、关键路径和最短路径三个面板" loading="lazy"></a><figcaption>图 3.43 多路径时序，含一般波形、关键路径和最短路径三个面板</figcaption></figure>
+<ul>
+<li><strong>(a) 先看阴影的两头。</strong> 左边界表示信号最早可能开始变，右边界表示最迟能稳定。一个节点可以被多条路径影响。</li>
+<li><strong>(b) 看最长路径。</strong> 沿 <code>A → n₁ → X′ → Y′</code>，上游输出最迟在 <code>80 ps</code> 稳定，再过三个门各 <code>40 ps</code>，Y′ 到 <code>200 ps</code> 才稳定。下一个上升沿在 <code>250 ps</code>，正好留出 <code>50 ps</code> 的建立时间。</li>
+<li><strong>(c) 看最短路径。</strong> 当 <code>A = 0</code> 且 C 从 <code>0</code> 变为 <code>1</code> 时，C 最早在 <code>30 ps</code> 变化，再过一个门的 <code>25 ps</code>，X′ 在 <code>55 ps</code> 就可能离开旧值。接收端要它保持到 <code>60 ps</code>，所以 hold slack 是 <code>55 − 60 = −5 ps</code>。</li>
+</ul>
+<p>图 3.37、3.39、3.40 和 3.43 取自 Harris &amp; Harris 的 <em>Digital Design and Computer Architecture: RISC-V Edition</em> §3.5。 <a class="external-reference" href="https://pages.hmc.edu/harris/ddca/ddcarv.html" target="_blank" rel="noreferrer">教材原版图集</a></p>
+<h3 id="写-verilog-时-怎么知道有没有-hold-违例"><a class="heading-anchor" href="#写-verilog-时-怎么知道有没有-hold-违例" aria-label="Link to this section">#</a>写 Verilog 时，怎么知道有没有 hold 违例？</h3>
 <pre><code class="language-verilog">always @(posedge clk) begin
     q1 &lt;= din;
     q2 &lt;= q1;
 end
 </code></pre>
-<p>两个非阻塞赋值在同一个沿读各自的右侧，<code>q2</code> 因此采到沿前的 <code>q1</code>。实际器件里，这个采样关系能否可靠成立，要在 Vivado 布局布线后的 <strong>Hold（Min Delay）</strong> 报告中检查 <code>q1.Q → q2.D</code>。Hold slack 等于最早数据到达时间减去保持截止时间，工具还会计入时钟路径延迟。</p>
-<p><strong>Hold slack 太大也不好吗？缓冲器在 Verilog 里如何实现？</strong> 较大的正 hold slack 本身满足保持要求。若通过给数据路径增加延迟获得，setup 余量可能缩小。AMD FPGA 的一输入 LUT 可以实现恒等逻辑，用 <code>LUT1 #(.INIT(2&#39;b10)) u_buf (.I0(q1), .O(q1_buf));</code> 表达，保留该实例后仍须看实现报告。若布线绕行或物理优化插入的 <code>LUT1</code> 让这条路径的最小延迟净增加 <code>10 ps</code>，上面的 hold slack 会从 <code>−5 ps</code> 变成 <code>+5 ps</code>。普通 <code>assign q1_buf = q1;</code> 只描述逻辑连接，综合通常会把它折叠。物理延迟以实现报告为准。增加路径延迟也可能推迟新值最晚到达的时刻，所以修完 hold 后还要复查 setup。 <a class="external-reference" href="https://docs.amd.com/r/en-US/ug906-vivado-design-analysis/Timing-Path-Details" target="_blank" rel="noreferrer">Vivado 时序路径明细</a> · <a class="external-reference" href="https://docs.amd.com/r/2023.2-English/ug949-vivado-design-methodology/Fixing-Large-Hold-Violations-Prior-to-Routing" target="_blank" rel="noreferrer">Vivado 保持修复</a></p>
-<h3 id="结果提前稳定了-延迟为什么还要数到采样沿"><a class="heading-anchor" href="#结果提前稳定了-延迟为什么还要数到采样沿" aria-label="Link to this section">#</a>结果提前稳定了，延迟为什么还要数到采样沿？</h3>
-<p>三段组合逻辑的延迟依次为 <code>2 / 3 / 1 ns</code>，每级的 <code>t_pcq + t_setup</code> 合计为 <code>0.2 ns</code>。假设输入独立、每级每拍接收一笔、没有停顿，且保持约束已满足。</p>
+<p>RTL 仿真里，<code>q2</code> 在上升沿读的是沿前的 <code>q1</code>。实际电路能否可靠采到这个旧值，要在布局布线后看 Vivado 的 <strong>Hold（Min Delay）</strong>，沿 <code>q1.Q → q2.D</code> 查最早到达时间和保持截止时间。报告也会算上两端的时钟路径。 <a class="external-reference" href="https://docs.amd.com/r/en-US/ug906-vivado-design-analysis/Timing-Path-Details" target="_blank" rel="noreferrer">Vivado 时序路径明细</a></p>
+<p><strong>Hold 余量大也不好吗？缓冲器怎么加？</strong> 正的 hold 余量越大，最早到达时间离保持截止越远。如果靠增加数据路径延迟获得这些余量，还要确认新值能按时赶到下一拍。普通 Verilog 的 <code>assign q1_buf = q1;</code> 只是连线，综合可能把它折叠。Vivado 可以绕线，或在物理优化时插入实现恒等逻辑的 <code>LUT1</code>。它增加的是传播时间，数据依然在原来的时钟沿采样。实际增加多少，以实现后的 setup 和 hold 报告为准。 <a class="external-reference" href="https://docs.amd.com/r/2023.2-English/ug949-vivado-design-methodology/Fixing-Large-Hold-Violations-Prior-to-Routing" target="_blank" rel="noreferrer">Vivado 保持修复</a></p>
+<h3 id="流水线切得更细-第一笔会更快吗"><a class="heading-anchor" href="#流水线切得更细-第一笔会更快吗" aria-label="Link to this section">#</a>流水线切得更细，第一笔会更快吗？</h3>
+<p>三段逻辑依次耗时 <code>2 / 3 / 1 ns</code>，每一级还要留出 <code>0.2 ns</code> 给时钟到输出和建立时间。假设请求相互独立、每拍都能接收、保持约束已满足。</p>
 <table>
 <thead>
 <tr>
@@ -203,9 +193,9 @@ end
 <td align="right"><code>3.2 ns</code></td>
 </tr>
 <tr>
-<td>首笔从输入采样沿到输出采样沿</td>
-<td align="right"><code>2 × 4.2 = 8.4 ns</code></td>
-<td align="right"><code>3 × 3.2 = 9.6 ns</code></td>
+<td>首笔到输出采样沿</td>
+<td align="right"><code>8.4 ns</code></td>
+<td align="right"><code>9.6 ns</code></td>
 </tr>
 <tr>
 <td>理想启动间隔（II）</td>
@@ -213,10 +203,9 @@ end
 <td align="right"><code>1 拍 = 3.2 ns</code></td>
 </tr>
 </tbody></table>
-<p>以两级方案为例，输出寄存器的 D 端最晚须在 <code>8.4 ns − t_setup</code> 稳定，寄存器在 <code>8.4 ns</code> 的沿才采样。若从输出 Q 端观察新值，还要等输出寄存器自己的时钟到输出延迟。</p>
-<p><strong>为什么 II 是一拍？</strong> 两级方案中，A 在 <code>0 ns</code> 进入。到 <code>4.2 ns</code> 的沿，级间寄存器采到 A 的第一级结果，输入寄存器同时接收 B。下一拍内，第一级处理 B，第二级处理 A。于是 A 自己走两拍，相邻两笔只隔一拍。</p>
-<p>从空流水线开始连续送入 <code>N</code> 笔，最后一笔的采样时间是 <code>首笔延迟 + (N−1) × II</code>。两级的第一笔早 <code>1.2 ns</code>，三级每多处理一笔追回 <code>1.0 ns</code>。所以本例从 <strong>第 3 笔</strong>开始，三级方案更早处理完整批。</p>
-<p>时序图与最短路径例子见 Harris &amp; Harris 的 RISC-V 版教材 §3.5，图 3.37–3.43。 <a class="external-reference" href="https://pages.hmc.edu/harris/ddca/ddcarv.html" target="_blank" rel="noreferrer">教材作者配套页</a></p>
+<p><strong>为什么首笔延迟还要算到采样沿？</strong> 以两级为例，输出寄存器的 D 端要在 <code>8.4 ns − t_setup</code> 前稳定，输出寄存器在 <code>8.4 ns</code> 采样。若要等到它的 Q 端稳定，还要加上输出寄存器的时钟到输出延迟。</p>
+<p><strong>为什么 II 只有一拍？</strong> 两级方案中，第一笔在 <code>0 ns</code> 进入。到 <code>4.2 ns</code>，级间寄存器接住第一笔的中间结果，输入寄存器同时接住第二笔。接下来两个级各忙一笔。第一笔走完全程要两拍，前后两笔进来的间隔只有一拍。</p>
+<p>从空流水线连续送入 <code>N</code> 笔，最后一笔的采样时间等于 <code>首笔延迟 + (N−1) × II</code>。两级先出第一笔，三级每多一笔追回 <code>1.0 ns</code>。到 <strong>第 3 笔</strong>，三级在 <code>16.0 ns</code> 完成，两级在 <code>16.8 ns</code> 完成。</p>
 
         </article>
       </div>
