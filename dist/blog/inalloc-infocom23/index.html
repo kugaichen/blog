@@ -37,9 +37,9 @@
 <li><a href="#在线重分配的两个挑战" data-section-title="在线重分配的两个挑战">在线重分配的两个挑战</a></li>
 <li><a href="#寻址与哈希冲突" data-section-title="寻址与哈希冲突">寻址与哈希冲突</a></li>
 <li><a href="#状态与包头" data-section-title="状态与包头">状态与包头</a></li>
-<li><a href="#单机架与跨机架重分配" data-section-title="单机架与跨机架重分配">单机架与跨机架重分配</a><ul><li><a href="#single-rack">Single rack</a></li><li><a href="#across-rack">Across rack</a></li></ul></li>
+<li><a href="#单机架与跨机架重分配" data-section-title="单机架与跨机架重分配">单机架与跨机架重分配</a><ul><li><a href="#fig-6-单机架的切换边界">Fig. 6 · 单机架的切换边界</a></li><li><a href="#fig-7-跨机架的分层更新">Fig. 7 · 跨机架的分层更新</a></li></ul></li>
 <li><a href="#丢包与重传" data-section-title="丢包与重传">丢包与重传</a></li>
-<li><a href="#调度策略与评估" data-section-title="调度策略与评估">调度策略与评估</a><ul><li><a href="#先提出三点调度原则">先提出三点调度原则</a></li><li><a href="#cross-rack-调度启发式">Cross-rack 调度启发式</a></li><li><a href="#实验配置-离散模拟与评价指标">实验配置、离散模拟与评价指标</a></li></ul></li></ul>
+<li><a href="#调度策略与评估" data-section-title="调度策略与评估">调度策略与评估</a><ul><li><a href="#先提出三点调度原则">先提出三点调度原则</a></li><li><a href="#cross-rack-调度启发式">Cross-rack 调度启发式</a></li><li><a href="#实验设置与评价口径">实验设置与评价口径</a></li></ul></li></ul>
           </details>
         </nav>
         <article class="article-body">
@@ -635,7 +635,53 @@
     font-size: 1rem;
   }
 }
-</style><div class="atp-reading" id="atp-reading-root"><div class="atp-meta-card">
+
+/* INAlloc: topic-led explanations and continuous reading of long notes. */
+.atp-reading.inalloc-reading .atp-chain {
+  gap: 0;
+}
+.atp-reading.inalloc-reading .atp-chain > .atp-step + .atp-step {
+  margin-top: 1rem;
+}
+.atp-reading.inalloc-reading .atp-spread {
+  margin-bottom: 2rem;
+}
+.atp-reading.inalloc-reading .atp-notes {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+.atp-reading.inalloc-reading .atp-step p + p {
+  margin-top: 0.65rem;
+}
+.atp-reading.inalloc-reading .atp-step li {
+  margin-bottom: 0.45rem;
+  line-height: inherit;
+}
+.atp-reading.inalloc-reading .atp-step-Reflect + .atp-step {
+  padding-top: 1rem;
+  border-top: 1px solid var(--hair);
+}
+.atp-reading.inalloc-reading .inalloc-protocol .atp-notes {
+  position: static;
+}
+@media (min-width: 1101px) and (min-height: 800px) {
+  .atp-reading.inalloc-reading:not(.atp-wide-mode) .inalloc-protocol .atp-source {
+    position: sticky;
+    top: var(--article-toc-top);
+  }
+}
+@media (min-width: 1101px) and (max-width: 1700px) and (min-height: 800px) {
+  .atp-reading.inalloc-reading:not(.atp-wide-mode) .inalloc-protocol .atp-source {
+    top: calc(var(--article-header-height) + 5rem);
+  }
+}
+@media print {
+  .atp-reading.inalloc-reading .inalloc-protocol .atp-source {
+    position: static;
+  }
+}
+</style><div class="atp-reading inalloc-reading" id="atp-reading-root"><div class="atp-meta-card">
 <p class="atp-lede">在网聚合把中间状态留在交换机里，多任务并发时，有限的片上内存需要统一管理。INAlloc 将内存分配纳入训练调度，并<strong>通过报文序号协调在线重分配</strong>。这篇笔记关注论文的问题切入、寻址与一致性更新，再看重传、跨机架扩展和实验设计。</p>
 <div class="atp-biblio">
   <em class="atp-paper-title">Enabling Switch Memory Management for Distributed Training with In-Network Aggregation</em>
@@ -661,7 +707,7 @@
 <p><span class="atp-tag">（理解批注）</span>先是大背景</p><div class="atp-arrow" aria-hidden="true">↓</div><p>说明 INC 的重要性</p><div class="atp-arrow" aria-hidden="true">↓</div><p>引入 switch memory 概念。Tofino 这类 ASIC 的片上存储只有约 10 MB。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>然后直接介绍本文的工作 INAlloc。</p><p>2 features</p><ol><li>Memory management mechanism</li><li>Job-resource modeling</li></ol>
 </div>
 <div class="atp-step">
-<p>作者用操作系统的 <code>malloc</code>、<code>free</code> 类比内存管理接口。调度器通过它分配、调整和回收内存段，管理器负责在交换机与主机上落实。另一部分将交换机内存纳入作业完成时间（JCT）模型，供调度器决定资源分配。两项功能在后文分别展开，最后合到调度策略中。</p>
+<p><strong>两项功能分别回答“怎样管理”和“如何分配”。</strong> 内存管理机制用 <code>malloc</code>、<code>free</code> 类接口承接分配、调整和回收，并在交换机与主机上落实；作业—资源模型将交换机内存纳入完成时间（JCT）估算，供调度器决定分配量。后文沿这两条线展开，最后合到调度策略中。</p>
 </div>
 </div>
 </aside>
@@ -674,10 +720,11 @@
 <aside class="atp-notes">
 <div class="atp-chain">
 <div class="atp-step">
-<p><strong>C1，一致性。</strong> Worker 进度不同，如果在不同序号切段，同一序号的梯度可能散落到不同寄存器。两边都收不齐，传输和槽位回收都会卡住。</p><p><strong>C2，不中断传输。</strong> 协调 Worker 和计算新寻址都需要时间，更新过程还要让梯度继续传输。</p>
+<p><strong>C1：同一序号的梯度必须落到同一槽位。</strong> Worker 进度不同，若各自在不同序号切段，同一序号的梯度就会散落到新旧寄存器。两边都收不齐，传输被阻塞，槽位也无法回收。</p>
 </div>
+<div class="atp-arrow" aria-hidden="true">↓</div>
 <div class="atp-step">
-<p>作者将正确性与更新开销分别展开。§IV-B 讲一致性协议，§IV-C 将更新信号随梯度包和 ACK 传递，并让新寻址的计算与传输重叠。</p>
+<p><strong>C2：协调更新时，梯度仍要继续传输。</strong> Worker 达成一致、计算新寻址都需要时间。§IV-B 先处理一致性，§IV-C 再让更新信号随梯度包和 ACK 传递，并将寻址计算与传输重叠。</p>
 </div>
 </div>
 </aside>
@@ -686,15 +733,45 @@
 <div class="atp-source">
 <div class="atp-source-card"><figure><a class="article-image-link" href="figures/07-addressing.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/07-addressing.png" alt="交换机内存寻址" loading="lazy"></a><figcaption>交换机内存寻址 · p.4</figcaption></figure>
 </div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step">
+<p><strong>先统一聚合器，再确定报文落在哪个槽位。</strong> INAlloc 将流水线各级的同索引寄存器组成一个 aggregator，用 <code>Loc</code> 和 <code>Size</code> 描述内存段。</p>
+</div>
+<div class="atp-step">
+<p>公式 (1) 根据 <code>SN</code>、<code>JobID</code> 和段大小计算段内索引。关键约束是：<strong>同一作业中相同 SN 的报文，必须使用相同映射。</strong></p>
+</div>
+</div>
+</aside>
+</div><div class="atp-spread">
+<div class="atp-source">
 <div class="atp-source-card"><figure><a class="article-image-link" href="figures/08-collision-start.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/08-collision-start.png" alt="碰撞、回退与预计算" loading="lazy"></a><figcaption>碰撞、回退与预计算 · p.4</figcaption></figure>
 </div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step">
+<p><strong>发生冲突时，后到的包回退到 PS。</strong> 作业内、作业间都可能发生哈希冲突；后到的包绕过交换机聚合，由参数服务器继续处理。</p>
+</div>
+<div class="atp-step">
+<p><strong>已有方案采用反应式修正。</strong> 发生回退 =&gt; PS 检测到碰撞 =&gt; 为该序号另找索引。</p>
+</div>
+</div>
+</aside>
+</div><div class="atp-spread">
+<div class="atp-source">
 <div class="atp-source-card"><figure><a class="article-image-link" href="figures/09-collision-continued.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/09-collision-continued.png" alt="主机计算并写入包头" loading="lazy"></a><figcaption>主机计算并写入包头 · p.4</figcaption></figure>
 </div>
 </div>
 <aside class="atp-notes">
 <div class="atp-chain">
 <div class="atp-step">
-<p><strong>寻址。</strong> INAlloc 将流水线各级的同索引寄存器组成一个 aggregator，用 <code>Loc</code> 和 <code>Size</code> 描述内存段。公式 (1) 根据 <code>SN</code>、<code>JobID</code> 和段大小计算索引，让同一作业中相同 <code>SN</code> 的报文落到同一槽位。</p><p><strong>冲突。</strong> 作业内、作业间都可能发生哈希冲突。后到的包绕过交换机聚合，回退到参数服务器（PS）。先前方案由 PS 在回退后为该序号另找索引。</p><p><strong>主机预计算。</strong> 作业内冲突可以提前处理。主机算好 <code>AgtrIdx</code> 写入包头，既方便处理冲突，也节省交换机上的哈希计算资源。共享段中的作业间竞争依然存在。</p>
+<p><strong>INAlloc 将可预测的作业内冲突提前处理。</strong> 主机预计算索引，并把 <code>AgtrIdx</code> 写入包头。这样做有两个理由：</p>
+<ul><li>端侧更灵活，便于提前处理冲突。</li><li>省下交换机哈希计算所占的流水线资源。</li></ul>
+</div>
+<div class="atp-step">
+<p>这一处理针对作业内冲突。多个作业链接到共享段时，作业间的槽位竞争仍然存在。</p>
 </div>
 </div>
 </aside>
@@ -706,7 +783,7 @@
 <aside class="atp-notes">
 <div class="atp-chain">
 <div class="atp-step">
-<p>左图中各作业独占互不重叠的段。右图中多个作业链接到同一段，在时间上复用聚合槽位。这也是作业间可能发生槽位竞争的地方。</p>
+<p><strong>独占段与共享段对应两种复用方式。</strong> 左图中各作业独占互不重叠的段；右图中多个作业链接到同一段，在时间上复用聚合槽位。共享提高了利用机会，也带来作业间的槽位竞争。</p>
 </div>
 </div>
 </aside>
@@ -719,13 +796,16 @@
 <aside class="atp-notes">
 <div class="atp-chain">
 <div class="atp-step">
-<p>每次重分配递增 <code>Version</code>。端侧记录 <code>SN → Version</code>，以便重传时找回首发的寻址版本。<code>ReallocSN</code> 指定重分配生效的未来序号。</p><p>包头新增 <code>Version</code>、<code>Loc</code> 和 <code>Size</code>，分别携带版本、新段位置和大小。</p>
+<p><strong>Version 记录采用哪套映射。</strong> 每次重分配递增版本，端侧保留 <code>SN → Version</code>，让重传仍能找回首发时的寻址。包头新增 <code>Version</code>、<code>Loc</code> 和 <code>Size</code>，携带版本、新段位置和大小。</p>
+</div>
+<div class="atp-step">
+<p><strong>ReallocSN 决定从哪个序号切换。</strong> 收到新版本后可以先准备寻址；真正生效还需要一个共同的未来序号。这就引出下面的一致性更新协议。</p>
 </div>
 </div>
 </aside>
 </div><h2 id="单机架与跨机架重分配"><a class="heading-anchor" href="#单机架与跨机架重分配" aria-label="Link to this section">#</a>单机架与跨机架重分配</h2>
-<h3 id="single-rack"><a class="heading-anchor" href="#single-rack" aria-label="Link to this section">#</a>Single rack</h3>
-<div class="atp-spread">
+<h3 id="fig-6-单机架的切换边界"><a class="heading-anchor" href="#fig-6-单机架的切换边界" aria-label="Link to this section">#</a>Fig. 6 · 单机架的切换边界</h3>
+<div class="atp-spread inalloc-protocol">
 <div class="atp-source">
 <div class="atp-source-card"><figure><a class="article-image-link" href="figures/02-single-rack.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/02-single-rack.png" alt="单机架一致性更新 · Fig. 6" loading="lazy"></a><figcaption>单机架一致性更新 · Fig. 6 · p.4</figcaption></figure>
 </div>
@@ -743,12 +823,16 @@
 </ol>
 </div>
 <div class="atp-step">
-<p><span class="atp-tag">（原文核对）</span>第 2 步的通知随现有梯度包送到 PS。第 4、5 步的切换发生在 <strong>Worker 的发送逻辑</strong>。PS 通过原有 ACK 通知 Worker，单机架 ToR 原样转发 ACK。Worker 可以先准备新版本的寻址，首次发送时 <code>SN &lt; ReallocSN</code> 仍用旧映射，<code>SN ≥ ReallocSN</code> 用新映射。最大窗口给 ACK 通知与预计算留出时间。</p>
+<p><strong>通知沿梯度包和 ACK 完成往返。</strong> 第 2 步的新段信息随梯度包送到 PS；PS 更新状态并准备回退所需的寻址，再通过原有 ACK 通知 Worker。单机架 ToR 原样转发 ACK。</p>
+</div>
+<div class="atp-arrow" aria-hidden="true">↓</div>
+<div class="atp-step">
+<p><strong>真正的寻址切换发生在 Worker 的发送路径。</strong> 对首次发送的报文，<code>SN &lt; ReallocSN</code> 仍用旧映射，<code>SN ≥ ReallocSN</code> 用新映射。Worker 可以提前准备新寻址，最大窗口为 ACK 通知和预计算留出时间。</p>
 </div>
 </div>
 </aside>
-</div><h3 id="across-rack"><a class="heading-anchor" href="#across-rack" aria-label="Link to this section">#</a>Across rack</h3>
-<div class="atp-spread">
+</div><h3 id="fig-7-跨机架的分层更新"><a class="heading-anchor" href="#fig-7-跨机架的分层更新" aria-label="Link to this section">#</a>Fig. 7 · 跨机架的分层更新</h3>
+<div class="atp-spread inalloc-protocol">
 <div class="atp-source">
 <div class="atp-source-card"><figure><a class="article-image-link" href="figures/03-cross-rack.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/03-cross-rack.png" alt="跨机架一致性更新 · Fig. 7" loading="lazy"></a><figcaption>跨机架一致性更新 · Fig. 7 · p.4</figcaption></figure>
 </div>
@@ -765,7 +849,11 @@
 <p>总体而言，我认为这里的讨论很牵强，设计不好。</p>
 </div>
 <div class="atp-step">
-<p><span class="atp-tag">（原文核对）</span><strong>A</strong> 是先在叶交换机安装匹配 ACK 的规则，再在根交换机安装匹配梯度包的规则。<strong>B</strong> 是返回的 ACK 经过叶交换机时，由该叶补入自己的新段信息。图上只画 R1 的 B 路径。R1 和 R2 看到的是同一根段信息，各自的 ToR 可以补不同的叶段信息。Worker 从 PS 的 ACK 协调切换边界，同时更新两级寻址。</p>
+<p><strong>A 表示规则的安装顺序。</strong> 先在叶交换机安装匹配 ACK 的规则，再在根交换机安装匹配梯度包的规则。</p>
+</div>
+<div class="atp-arrow" aria-hidden="true">↓</div>
+<div class="atp-step">
+<p><strong>B 表示 ACK 返程时补入叶段信息。</strong> ACK 已携带根段信息，经过叶交换机时再补上该叶的新段信息；图中只画了 R1 的 B 路径。R1、R2 共享根段信息，各自的 ToR 可以补入不同的叶段信息。Worker 仍从 PS 的 ACK 协调切换边界，同时更新两级寻址。</p>
 </div>
 </div>
 </aside>
@@ -781,7 +869,10 @@
 <p><span class="atp-tag">（理解批注）</span>报文丢失会使得 Worker 重传报文给 switch。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>重传报文的 SN 可能会干扰 <code>SignalSN</code> 的选取和判断。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>导致不同 Worker 间 <code>ReallocSN</code> 的选取会不一致。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>这里对重传报文的头部加入 <code>Resend</code>，来标记这是否属于重传报文，重传报文的 SN 就不会参与内存调整了。</p>
 </div>
 <div class="atp-step">
-<p><span class="atp-tag">（原文核对）</span>论文举例，<code>SignalSN − 1</code> 的 ACK 丢失后，重传若被当作新提议，<code>ReallocSN</code> 会提前一个序号，其他 Worker 可能已经发过该序号。发送端还用 <code>SN → Version</code> 恢复首发映射，使重传访问原槽位。</p>
+<p><strong>旧报文不能重新参与切换点协商。</strong> 论文举例：<code>SignalSN − 1</code> 的 ACK 丢失后，重传若被当作新提议，会使 <code>ReallocSN</code> 提前一个序号，而其他 Worker 可能已经发过该序号。</p>
+</div>
+<div class="atp-step">
+<p><strong>重传还要回到首发时的槽位。</strong> 发送端用 <code>SN → Version</code> 恢复首发映射。这与 <code>Resend</code> 排除重传报文对更新协商的干扰，共同保证寻址一致。</p>
 </div>
 </div>
 </aside>
@@ -795,7 +886,10 @@
 <aside class="atp-notes">
 <div class="atp-chain">
 <div class="atp-step">
-<ol><li>在 EDF（最早截止时间优先）上加入交换机内存管理和 JCT 建模，为能按时完成的 deadline-aware（DA）作业分配所需资源。</li><li>即使给足全部资源也无法按时完成的 DA 作业，提前终止并回收内存。</li><li>让 best-effort（BE）作业共享剩余交换机内存，提高利用率。</li></ol><p>模型先根据通信带宽和 RTT 估算在途梯度所需的内存，再用作业的计算和通信时间估算 JCT。</p>
+<ol><li>在 EDF（最早截止时间优先）上加入交换机内存管理和 JCT 建模，为能按时完成的 deadline-aware（DA）作业分配所需资源。</li><li>即使给足全部资源也无法按时完成的 DA 作业，提前终止并回收内存。</li><li>让 best-effort（BE）作业共享剩余交换机内存，提高利用率。</li></ol>
+</div>
+<div class="atp-step">
+<p><strong>资源模型把调度原则落实为分配量。</strong> 模型根据通信带宽和 RTT 估算在途梯度所需内存，再结合计算和通信时间估算 JCT，供调度器判断资源需求。</p>
 </div>
 </div>
 </aside>
@@ -811,19 +905,24 @@
 <p><span class="atp-tag">（理解批注）</span>这里提出一个启发式策略。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>优先保证 cross-rack 的任务完成，即把 cross-rack 当作 deadline-aware 的任务进行处理。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>理由则是，cross-rack 的任务需要更长的通信时间，占用资源的时间也会更长。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>导致资源的碎片化会更严重。</p>
 </div>
 <div class="atp-step">
-<p><span class="atp-tag">（原文核对）</span>这个策略在检测到跨机架链路拥塞时触发。CRS 用估算的剩余 JCT 设定这些作业的完成时限，并为其预留资源，希望它们完成后尽早释放资源，让后续作业有机会留在单个机架内。</p>
+<p><strong>这个启发式在跨机架链路拥塞时触发。</strong> CRS 用估算的剩余 JCT 设定完成时限，并为这些作业预留资源，希望它们尽早完成、释放资源，让后续作业有机会留在单个机架内。</p>
 </div>
 </div>
 </aside>
-</div><h3 id="实验配置-离散模拟与评价指标"><a class="heading-anchor" href="#实验配置-离散模拟与评价指标" aria-label="Link to this section">#</a>实验配置、离散模拟与评价指标</h3>
+</div><h3 id="实验设置与评价口径"><a class="heading-anchor" href="#实验设置与评价口径" aria-label="Link to this section">#</a>实验设置与评价口径</h3>
 <div class="atp-spread">
 <div class="atp-source">
 <div class="atp-source-card"><figure><a class="article-image-link" href="figures/16-metrics.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/16-metrics.png" alt="评价指标" loading="lazy"></a><figcaption>评价指标 · p.7</figcaption></figure>
 </div>
 </div>
 <aside class="atp-notes">
+<div class="atp-chain">
 <div class="atp-step">
-<p><strong>训练吞吐（images/s）</strong>检验重分配开销，对照无重分配的 ATP 和超时恢复的 ATP-TO。<strong>平均 JCT 与截止时间未达比例（DMR）</strong>检验系统调度，对照 SilentINA。模拟中另比较启用和关闭 CRS。</p>
+<p><strong>数据面实验看更新是否拖慢训练。</strong> 用训练吞吐（images/s）检验重分配开销，对照无重分配的 ATP 和超时恢复的 ATP-TO。</p>
+</div>
+<div class="atp-step">
+<p><strong>调度实验看作业完成得怎样。</strong> 用平均 JCT 和截止时间未达比例（DMR）对照 SilentINA；模拟中另比较启用和关闭 CRS。</p>
+</div>
 </div>
 </aside>
 </div><div class="atp-spread">
@@ -832,8 +931,10 @@
 </div>
 </div>
 <aside class="atp-notes">
+<div class="atp-chain">
 <div class="atp-step">
-<p>5 台服务器，每台 2 张 RTX 2080 Ti，通过双口 40 Gbps ConnectX-5 接入一台 32 × 100 Gbps Tofino。</p>
+<p><strong>实机用一台 Tofino 连接 5 台服务器。</strong> 每台服务器配 2 张 RTX 2080 Ti，通过双口 40 Gbps ConnectX-5 接入交换机；Tofino 配置为 32 × 100 Gbps 端口。</p>
+</div>
 </div>
 </aside>
 </div><div class="atp-spread">
@@ -842,8 +943,10 @@
 </div>
 </div>
 <aside class="atp-notes">
+<div class="atp-chain">
 <div class="atp-step">
-<p>流级离散时间模拟器采用 fat-tree。默认 16 个机架，每机架 16 台机器、每台 4 张 GPU，超售比 1:1、交换机内存 10 MB。训练速度、迭代与服务器配置取自实机实验。</p>
+<p><strong>用流级模拟扩展到大规模 fat-tree。</strong> 默认 16 个机架，每机架 16 台机器、每台 4 张 GPU，超售比 1:1、交换机内存 10 MB。训练速度、迭代与服务器配置取自实机实验。</p>
+</div>
 </div>
 </aside>
 </div><div class="atp-spread">
@@ -852,8 +955,13 @@
 </div>
 </div>
 <aside class="atp-notes">
+<div class="atp-chain">
 <div class="atp-step">
-<p>在 ImageNet 上训练 VGG16、VGG19、AlexNet 和 ResNet50。微软训练日志提供时长与 GPU 需求，模型类型随机补齐。另有 GPU 需求服从泊松或正态分布的合成轨迹。</p><p>50% 的作业随机设为 DA，截止时间为 <code>(1 + z)λⱼ</code>，其中 <code>λⱼ</code> 是轨迹中的完成时间，<code>z</code> 在 [0, 2] 均匀抽样。</p>
+<p><strong>训练模型与作业轨迹分开构造。</strong> 在 ImageNet 上训练 VGG16、VGG19、AlexNet 和 ResNet50；微软训练日志提供时长与 GPU 需求，模型类型随机补齐。另有 GPU 需求服从泊松或正态分布的合成轨迹。</p>
+</div>
+<div class="atp-step">
+<p><strong>一半作业设为 DA，再随机生成截止时间。</strong> 随机选取的 50% 作业使用 <code>(1 + z)λⱼ</code> 作为截止时间；<code>λⱼ</code> 是轨迹中的完成时间，<code>z</code> 在 [0, 2] 均匀抽样。</p>
+</div>
 </div>
 </aside>
 </div></div><script>
