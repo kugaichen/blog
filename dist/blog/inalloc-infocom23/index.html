@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#fdfcf9" />
+    <meta name="description" content="从 INAlloc 看多个训练任务如何共享聚合内存，以及 Worker 如何在同一报文序号切换寻址。" />
+    <title>INAlloc：交换机内存共享与在线重分配 — Kugai Chen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;family=Noto+Serif+SC:wght@400;600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../../styles.css" />
+    <link rel="stylesheet" href="../../article.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#article">Skip to article</a>
+    <header class="site-header article-site-header">
+      <a class="brand" href="../../">Kugai Chen</a>
+      <nav class="article-nav" aria-label="Primary navigation">
+        <a href="../../#connectionism">Notes</a>
+        <a href="../../#series">Series</a>
+      </nav>
+    </header>
+
+    <main class="article-page" id="article">
+      <header class="article-hero">
+        <p class="article-series">Paper Reading</p>
+        <h1>INAlloc：交换机内存共享与在线重分配</h1>
+        <p class="article-byline"><span>Kugai Chen</span><time datetime="2026-11-13">November 13, 2026</time></p>
+      </header>
+      <div class="post-content-shell">
+
+        <nav class="article-toc" aria-label="Table of contents">
+          <details class="toc-disclosure" open>
+            <summary class="toc-heading"><span>目录</span><span class="toc-count">7 个章节</span><span class="toc-current"><span class="toc-current-title"></span><span class="toc-current-position"></span></span></summary>
+            <ul><li><a href="#引言如何引出-inalloc" data-section-title="引言如何引出 INAlloc">引言如何引出 INAlloc</a></li>
+<li><a href="#在线重分配的两个挑战" data-section-title="在线重分配的两个挑战">在线重分配的两个挑战</a></li>
+<li><a href="#寻址与哈希冲突" data-section-title="寻址与哈希冲突">寻址与哈希冲突</a></li>
+<li><a href="#状态与包头" data-section-title="状态与包头">状态与包头</a></li>
+<li><a href="#单机架与跨机架重分配" data-section-title="单机架与跨机架重分配">单机架与跨机架重分配</a><ul><li><a href="#single-rack">Single rack</a></li><li><a href="#across-rack">Across rack</a></li></ul></li>
+<li><a href="#丢包与重传" data-section-title="丢包与重传">丢包与重传</a></li>
+<li><a href="#调度策略与评估" data-section-title="调度策略与评估">调度策略与评估</a><ul><li><a href="#先提出三点调度原则">先提出三点调度原则</a></li><li><a href="#cross-rack-调度启发式">Cross-rack 调度启发式</a></li><li><a href="#实验配置-离散模拟与评价指标">实验配置、离散模拟与评价指标</a></li></ul></li></ul>
+          </details>
+        </nav>
+        <article class="article-body">
+<style>
+/*
+ * ATP-specific figures and annotations only.
+ * Typography and page grid follow the site's dist/article.css.
+ * The original article text and image references are unchanged.
+ */
+/* Center the complete figures-and-notes column, with room for a separate TOC. */
+.article-page:has(.atp-reading) {
+  --article-width: clamp(960px, 76vw, 1120px);
+  --article-toc-width: 200px;
+  --article-toc-gap: 48px;
+}
+.article-page:has(.atp-reading) .post-content-shell {
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--article-width)) minmax(0, 1fr);
+  width: calc(100% - 2.6rem);
+}
+
+/* Base reading container: inherits exact blog typography */
+.atp-reading {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.atp-reading p {
+  margin: 0 0 var(--article-paragraph-gap);
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.atp-reading strong {
+  font-weight: 600;
+  color: var(--ink, #282828);
+}
+.atp-reading u {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(40, 40, 40, 0.45);
+}
+
+/* Opening Lede & Paper Metadata Card */
+.atp-reading .atp-meta-card {
+  margin: 0 0 2rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.atp-reading .atp-lede {
+  margin: 0 0 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--hair, rgba(0, 0, 0, 0.08));
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.atp-reading .atp-biblio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.2rem;
+  margin: 0 0 0.9rem;
+  font-family: var(--article-sans);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--ink-soft, #504945);
+}
+.atp-reading .atp-biblio em {
+  font-family: var(--article-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--ink, #282828);
+}
+.atp-reading .atp-biblio-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.atp-reading .atp-biblio-links a {
+  display: inline-block;
+  padding: 0.18rem 0.6rem;
+  background: #fff;
+  border: 1px solid var(--hair-strong, rgba(0, 0, 0, 0.16));
+  border-radius: 4px;
+  font-family: var(--article-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink, #282828);
+  text-decoration: none;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.atp-reading .atp-biblio-links a:hover {
+  background: var(--article-code-inline-bg, #f3f3f0);
+  border-color: var(--ink, #282828);
+}
+
+/* Researcher Spec Grid (Quick Architecture & Testbed Parameters) */
+.atp-reading .atp-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+  font-family: var(--article-sans);
+}
+.atp-reading .atp-spec-item {
+  padding: 0.65rem 0.8rem;
+  background: #fff;
+  border: 1px solid var(--hair, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-soft, #504945);
+}
+.atp-reading .atp-spec-item strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted, #676767);
+}
+
+/* Toolbar for Layout Switching (Side-by-Side vs Stacked Wide View) */
+.atp-reading .atp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.2rem 0 1.8rem;
+  padding: 0.55rem 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: 12.5px;
+  color: var(--muted, #676767);
+}
+.atp-reading .atp-view-btns {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+.atp-reading .atp-view-btn {
+  padding: 0.22rem 0.65rem;
+  background: #fff;
+  border: 1px solid var(--hair-strong, rgba(0, 0, 0, 0.16));
+  border-radius: 4px;
+  font-family: var(--article-sans);
+  font-size: 12px;
+  color: var(--ink-soft, #504945);
+  cursor: pointer;
+}
+.atp-reading .atp-view-btn.active {
+  background: var(--ink, #282828);
+  border-color: var(--ink, #282828);
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Two-Column Spread: Left Paper Figures + Right Arrow-Chain Notes */
+.atp-reading .atp-spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 2rem;
+  /* Both columns stay inside the centered article body. */
+  width: 100%;
+  max-width: none;
+  margin: 1.6rem 0 2.8rem;
+  align-items: start;
+}
+.atp-reading.atp-wide-mode .atp-spread {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.4rem;
+  max-width: none;
+}
+.atp-reading.atp-wide-mode .atp-notes {
+  position: static;
+  max-height: none;
+  overflow-y: visible;
+}
+
+.atp-reading .atp-source {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.atp-reading .atp-source-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: start;
+}
+.atp-reading .atp-source-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.atp-reading .atp-source-card figure {
+  margin: 0 auto;
+}
+.atp-reading .atp-source-card figure + figure {
+  margin-top: 1.5rem;
+}
+.atp-reading figcaption::before {
+  content: none;
+}
+.atp-reading .atp-pdf-tag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem 0.85rem;
+  margin: 0 0 0.85rem;
+  padding: 0 0 0.65rem;
+  background: transparent;
+  border-bottom: 1px solid var(--hair);
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: var(--article-source-size);
+  font-weight: 500;
+  color: var(--ink-soft, #504945);
+  line-height: 1.65;
+}
+.atp-reading .atp-pdf-tag a {
+  font-family: var(--article-mono);
+  font-size: var(--article-source-size);
+  color: var(--ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.atp-reading .atp-source-pair .atp-pdf-tag {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.3rem;
+}
+.atp-reading .atp-pdf-tag a:hover,
+.atp-reading .atp-pdf-tag a:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.atp-reading .atp-source-card p {
+  margin: 0;
+}
+.atp-reading .atp-source-card p + p {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--hair, rgba(0, 0, 0, 0.08));
+}
+.atp-reading .atp-source img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 3px;
+  cursor: zoom-in;
+}
+
+/* Right-hand Arrow-Chain Annotations: Clean Editorial Typography */
+.atp-reading .atp-notes {
+  min-width: 0;
+  position: sticky;
+  top: var(--article-toc-top);
+  max-height: calc(100dvh - var(--article-toc-top) - 1.5rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-left: 1.25rem;
+  padding-right: 0.35rem;
+  border-left: 1px solid var(--hair);
+}
+.atp-reading .atp-notes :is(p, li) {
+  text-align: left;
+}
+.atp-reading .atp-note-label,
+.atp-reading .atp-notes p.atp-note-label {
+  margin: 0 0 1.1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--hair);
+  font-family: var(--article-sans);
+  font-size: var(--article-label-size);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+  line-height: 1.65;
+}
+.atp-reading .atp-note-label::before {
+  content: "READING NOTES";
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+.atp-reading .atp-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.atp-reading .atp-step {
+  padding: 0.3rem 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.atp-reading .atp-step p {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+.atp-reading .atp-step p + p {
+  margin-top: 0.5rem;
+}
+.atp-reading .atp-step ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+.atp-reading .atp-step li {
+  margin-bottom: 0.25rem;
+  line-height: 1.68;
+}
+.atp-reading .atp-step-Reflect {
+  background: transparent;
+  padding-left: 0.85rem;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.atp-reading .atp-tag {
+  display: block;
+  margin: 0 0 0.3rem;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: var(--article-source-size);
+  font-weight: 500;
+  line-height: 1.65;
+  color: var(--muted);
+  vertical-align: baseline;
+}
+.atp-reading .atp-step-Reflect .atp-tag {
+  background: transparent;
+  color: var(--accent);
+}
+.atp-reading .atp-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 0;
+  height: 1.4rem;
+  margin: 0.2rem 0;
+  font-family: var(--article-sans);
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(140, 140, 140, 0.65);
+  user-select: none;
+  line-height: 1;
+}
+.atp-reading .atp-notes .atp-caution {
+  margin: 0.85rem 0 0;
+  padding: 0.5rem 0 0.5rem 0.85rem;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--hair);
+  border-radius: 0;
+  font-family: var(--article-sans);
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--ink-soft, #504945);
+}
+
+/* Preserve the bilingual body style without flattening the metadata hierarchy. */
+.atp-reading .atp-notes,
+.atp-reading .atp-notes :is(strong, em, i, code, u),
+.atp-reading .atp-notes .atp-caution {
+  font-family: var(--article-serif);
+  font-size: inherit;
+  font-weight: 400;
+  font-style: normal;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  color: inherit;
+}
+.atp-reading .atp-notes strong {
+  font-weight: 600;
+}
+.atp-reading .atp-notes code {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.atp-reading .atp-notes :is(em, i, u) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: currentColor;
+}
+
+/* Full-width quick index; preserve readable columns on small screens. */
+.atp-reading .atp-quick-index {
+  width: 100%;
+  overflow-x: auto;
+}
+.atp-reading .atp-quick-index table {
+  width: 100%;
+  min-width: 760px;
+  max-width: none;
+  table-layout: fixed;
+}
+.atp-reading .atp-quick-index :is(th, td):nth-child(1) {
+  width: 23%;
+}
+.atp-reading .atp-quick-index :is(th, td):nth-child(2) {
+  width: 22%;
+}
+.atp-reading .atp-quick-index :is(th, td):nth-child(3) {
+  width: 55%;
+}
+
+/* Avoid clipping the left TOC on narrower desktop viewports. */
+@media (max-width: 1700px) {
+  .article-page:has(.atp-reading) .post-content-shell {
+    display: block;
+    width: min(var(--article-width), calc(100% - 2.6rem));
+  }
+  .article-page:has(.atp-reading) .article-toc {
+    position: static;
+    width: 100%;
+    max-height: none;
+    margin: 0 0 4rem;
+    padding: 0;
+    overflow: visible;
+  }
+  .atp-reading .atp-spread {
+    width: 100%;
+  }
+  .atp-reading .atp-spec-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Leave room for the compact TOC above a sticky commentary column. */
+@media (min-width: 1101px) and (max-width: 1700px) {
+  .atp-reading:not(.atp-wide-mode) .atp-notes {
+    top: calc(var(--article-header-height) + 5rem);
+    max-height: calc(100dvh - var(--article-header-height) - 6.5rem);
+  }
+}
+
+@media (max-width: 1100px) {
+  .article-page:has(.atp-reading) {
+    --article-width: 730px;
+  }
+  .atp-reading .atp-spread {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .atp-reading .atp-source-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atp-reading .atp-notes {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding-left: 0.9rem;
+  }
+  .atp-reading .atp-view-btns {
+    display: none;
+  }
+}
+
+@media (max-width: 780px) {
+  .atp-reading .atp-pdf-tag {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+  .atp-reading .atp-spec-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atp-reading .atp-toolbar {
+    display: none;
+  }
+}
+@media print {
+  .article-page:has(.atp-reading) .article-toc,
+  .atp-reading .atp-toolbar {
+    display: none;
+  }
+  .article-page:has(.atp-reading) .post-content-shell {
+    display: block;
+    width: 100%;
+  }
+  .atp-reading .atp-spread {
+    display: block;
+  }
+  .atp-reading .atp-notes {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+/* Compact presentation for the INAlloc reading notes. */
+.atp-reading .atp-lede {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--hair);
+}
+.atp-reading .atp-meta-card {
+  margin-bottom: 1.25rem;
+}
+.atp-reading .atp-biblio {
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 0.45rem 1rem;
+}
+.atp-reading .atp-biblio .atp-paper-title {
+  flex-basis: 100%;
+  margin-bottom: 0.2rem;
+  font-size: 1.125rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+.atp-reading .atp-paper-venue {
+  white-space: nowrap;
+}
+.atp-reading .atp-biblio-links a {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.atp-reading .atp-toolbar {
+  justify-content: flex-end;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+}
+.atp-reading .atp-source-card + .atp-source-card {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--hair);
+}
+.atp-reading .atp-spread + .atp-spread {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--hair);
+}
+.atp-reading .atp-notes {
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--hair);
+}
+.atp-reading .atp-chain {
+  gap: 1.1rem;
+}
+.atp-reading .atp-step {
+  padding: 0;
+  border-left: 0;
+}
+.atp-reading .atp-source-card figcaption {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: 0;
+}
+.atp-reading.atp-wide-mode .atp-notes {
+  padding-top: 1.25rem;
+  padding-left: 0;
+  border-top: 1px solid var(--hair);
+  border-left: 0;
+}
+@media (max-width: 1100px), print {
+  .atp-reading .atp-notes {
+    padding-top: 1.25rem;
+    padding-left: 0;
+    border-top: 1px solid var(--hair);
+    border-left: 0;
+  }
+}
+@media (max-width: 640px) {
+  .atp-reading .atp-biblio .atp-paper-title {
+    font-size: 1rem;
+  }
+}
+</style><div class="atp-reading" id="atp-reading-root"><div class="atp-meta-card">
+<p class="atp-lede">在网聚合把中间状态留在交换机里，多任务并发时，有限的片上内存需要统一管理。INAlloc 将内存分配纳入训练调度，并<strong>通过报文序号协调在线重分配</strong>。这篇笔记关注论文的问题切入、寻址与一致性更新，再看重传、跨机架扩展和实验设计。</p>
+<div class="atp-biblio">
+  <em class="atp-paper-title">Enabling Switch Memory Management for Distributed Training with In-Network Aggregation</em>
+  <span>Bohan Zhao 等 · <strong class="atp-paper-venue">IEEE INFOCOM 2023</strong></span>
+  <span class="atp-biblio-links"><a href="https://ieeexplore.ieee.org/document/10228956/" target="_blank" rel="noreferrer">原论文 ↗</a></span>
+</div>
+</div><div class="atp-toolbar">
+  <div class="atp-view-btns">
+    <button type="button" class="atp-view-btn active" data-view="split" aria-pressed="true">图文对照</button>
+    <button type="button" class="atp-view-btn" data-view="wide" aria-pressed="false">上下阅读</button>
+  </div>
+</div><h2 id="引言如何引出-inalloc"><a class="heading-anchor" href="#引言如何引出-inalloc" aria-label="Link to this section">#</a>引言如何引出 INAlloc</h2>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/04-intro-memory-gap.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/04-intro-memory-gap.png" alt="INA 与交换机内存" loading="lazy"></a><figcaption>INA 与交换机内存 · p.1</figcaption></figure>
+</div>
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/05-intro-two-features.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/05-intro-two-features.png" alt="INAlloc 的两项功能" loading="lazy"></a><figcaption>INAlloc 的两项功能 · p.1</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect">
+<p><span class="atp-tag">（理解批注）</span>先是大背景</p><div class="atp-arrow" aria-hidden="true">↓</div><p>说明 INC 的重要性</p><div class="atp-arrow" aria-hidden="true">↓</div><p>引入 switch memory 概念。Tofino 这类 ASIC 的片上存储只有约 10 MB。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>然后直接介绍本文的工作 INAlloc。</p><p>2 features</p><ol><li>Memory management mechanism</li><li>Job-resource modeling</li></ol>
+</div>
+<div class="atp-step">
+<p>作者用操作系统的 <code>malloc</code>、<code>free</code> 类比内存管理接口。调度器通过它分配、调整和回收内存段，管理器负责在交换机与主机上落实。另一部分将交换机内存纳入作业完成时间（JCT）模型，供调度器决定资源分配。两项功能在后文分别展开，最后合到调度策略中。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="在线重分配的两个挑战"><a class="heading-anchor" href="#在线重分配的两个挑战" aria-label="Link to this section">#</a>在线重分配的两个挑战</h2>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/06-two-challenges.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/06-two-challenges.png" alt="一致性与不中断传输" loading="lazy"></a><figcaption>一致性与不中断传输 · p.3</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step">
+<p><strong>C1，一致性。</strong> Worker 进度不同，如果在不同序号切段，同一序号的梯度可能散落到不同寄存器。两边都收不齐，传输和槽位回收都会卡住。</p><p><strong>C2，不中断传输。</strong> 协调 Worker 和计算新寻址都需要时间，更新过程还要让梯度继续传输。</p>
+</div>
+<div class="atp-step">
+<p>作者将正确性与更新开销分别展开。§IV-B 讲一致性协议，§IV-C 将更新信号随梯度包和 ACK 传递，并让新寻址的计算与传输重叠。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="寻址与哈希冲突"><a class="heading-anchor" href="#寻址与哈希冲突" aria-label="Link to this section">#</a>寻址与哈希冲突</h2>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/07-addressing.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/07-addressing.png" alt="交换机内存寻址" loading="lazy"></a><figcaption>交换机内存寻址 · p.4</figcaption></figure>
+</div>
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/08-collision-start.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/08-collision-start.png" alt="碰撞、回退与预计算" loading="lazy"></a><figcaption>碰撞、回退与预计算 · p.4</figcaption></figure>
+</div>
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/09-collision-continued.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/09-collision-continued.png" alt="主机计算并写入包头" loading="lazy"></a><figcaption>主机计算并写入包头 · p.4</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step">
+<p><strong>寻址。</strong> INAlloc 将流水线各级的同索引寄存器组成一个 aggregator，用 <code>Loc</code> 和 <code>Size</code> 描述内存段。公式 (1) 根据 <code>SN</code>、<code>JobID</code> 和段大小计算索引，让同一作业中相同 <code>SN</code> 的报文落到同一槽位。</p><p><strong>冲突。</strong> 作业内、作业间都可能发生哈希冲突。后到的包绕过交换机聚合，回退到参数服务器（PS）。先前方案由 PS 在回退后为该序号另找索引。</p><p><strong>主机预计算。</strong> 作业内冲突可以提前处理。主机算好 <code>AgtrIdx</code> 写入包头，既方便处理冲突，也节省交换机上的哈希计算资源。共享段中的作业间竞争依然存在。</p>
+</div>
+</div>
+</aside>
+</div><div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/01-memory-linkage.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/01-memory-linkage.png" alt="隔离段与共享段 · Fig. 4–5" loading="lazy"></a><figcaption>隔离段与共享段 · Fig. 4–5 · p.4</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step">
+<p>左图中各作业独占互不重叠的段。右图中多个作业链接到同一段，在时间上复用聚合槽位。这也是作业间可能发生槽位竞争的地方。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="状态与包头"><a class="heading-anchor" href="#状态与包头" aria-label="Link to this section">#</a>状态与包头</h2>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/10-update-state.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/10-update-state.png" alt="一致性更新协议的数据结构" loading="lazy"></a><figcaption>一致性更新协议的数据结构 · p.4</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step">
+<p>每次重分配递增 <code>Version</code>。端侧记录 <code>SN → Version</code>，以便重传时找回首发的寻址版本。<code>ReallocSN</code> 指定重分配生效的未来序号。</p><p>包头新增 <code>Version</code>、<code>Loc</code> 和 <code>Size</code>，分别携带版本、新段位置和大小。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="单机架与跨机架重分配"><a class="heading-anchor" href="#单机架与跨机架重分配" aria-label="Link to this section">#</a>单机架与跨机架重分配</h2>
+<h3 id="single-rack"><a class="heading-anchor" href="#single-rack" aria-label="Link to this section">#</a>Single rack</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/02-single-rack.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/02-single-rack.png" alt="单机架一致性更新 · Fig. 6" loading="lazy"></a><figcaption>单机架一致性更新 · Fig. 6 · p.4</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect">
+<p><span class="atp-tag">（理解批注）</span>我理解，针对 single rack：</p>
+<ol>
+<li>先通过控制平面将规则写进 switch，switch 会对 job 的 pkt 将 <code>Version</code>、<code>Loc</code>、<code>Size</code> 写进头部。</li>
+<li>把对应的信息先发到 PS？</li>
+<li>这里先在 PS 判断 Version。如果 <code>pkt.Version &gt; host.Version</code>，就将 <code>host.Version</code> 更新至 <code>pkt.Version</code>，同时按最新 <code>host.Version</code> 重新计算寻址（理解为更新映射规则）。</li>
+<li>PS 会持续记录这些发来的报文。我理解，在 <code>SignalSN</code>（通知报文的最小 SN）到 <code>ReallocSN</code>（<code>SignalSN + max_wnd_size</code>）这一段保持原内存分配规则，到切换点后实施新的内存分配规则。</li>
+<li>PS 发送 ACK 给 Worker，ACK 会携带最新的 <code>Version</code>、<code>Loc</code> 和 <code>Size</code>。我当时理解为交换机内部使用最新规则。</li>
+</ol>
+</div>
+<div class="atp-step">
+<p><span class="atp-tag">（原文核对）</span>第 2 步的通知随现有梯度包送到 PS。第 4、5 步的切换发生在 <strong>Worker 的发送逻辑</strong>。PS 通过原有 ACK 通知 Worker，单机架 ToR 原样转发 ACK。Worker 可以先准备新版本的寻址，首次发送时 <code>SN &lt; ReallocSN</code> 仍用旧映射，<code>SN ≥ ReallocSN</code> 用新映射。最大窗口给 ACK 通知与预计算留出时间。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="across-rack"><a class="heading-anchor" href="#across-rack" aria-label="Link to this section">#</a>Across rack</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/03-cross-rack.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/03-cross-rack.png" alt="跨机架一致性更新 · Fig. 7" loading="lazy"></a><figcaption>跨机架一致性更新 · Fig. 7 · p.4</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect">
+<p><span class="atp-tag">（理解批注）</span>我理解，针对 across rack：</p>
+<p>作者假设的是不同的交换机上可以做不同的内存管理。在这个假设前提下，从 Worker 发往 switch 的 <code>Version</code>、<code>Loc</code>、<code>Size</code> 可能会不一样，因此在多级聚合的情况下，向上聚合报文的信息可能会丢失（比如 R1 和 R2 有不同的信息，聚合完发给 root ToR 后只能选择其一）。</p>
+<ol>
+<li>在这样的情况下，作者根据不同的交换机内存管理方案，将规则分别发给 leaf / root 交换机。在 single rack 的条件下，leaf 交换机是可以配置成功的，包括发送 ACK 给 Worker。但这里有疑惑，如果聚合时配置信息不同，ACK 携带的信息会变得一样，内存再分配不就都一样了？</li>
+<li>所以我这里只能认为图中的 B 是在 A 的基础上额外给 R1 再进行一次分配，这样的话说得过去。</li>
+</ol>
+<p>总体而言，我认为这里的讨论很牵强，设计不好。</p>
+</div>
+<div class="atp-step">
+<p><span class="atp-tag">（原文核对）</span><strong>A</strong> 是先在叶交换机安装匹配 ACK 的规则，再在根交换机安装匹配梯度包的规则。<strong>B</strong> 是返回的 ACK 经过叶交换机时，由该叶补入自己的新段信息。图上只画 R1 的 B 路径。R1 和 R2 看到的是同一根段信息，各自的 ToR 可以补不同的叶段信息。Worker 从 PS 的 ACK 协调切换边界，同时更新两级寻址。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="丢包与重传"><a class="heading-anchor" href="#丢包与重传" aria-label="Link to this section">#</a>丢包与重传</h2>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/11-packet-loss.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/11-packet-loss.png" alt="丢包、重传与寻址一致性" loading="lazy"></a><figcaption>丢包、重传与寻址一致性 · p.5</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect">
+<p><span class="atp-tag">（理解批注）</span>报文丢失会使得 Worker 重传报文给 switch。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>重传报文的 SN 可能会干扰 <code>SignalSN</code> 的选取和判断。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>导致不同 Worker 间 <code>ReallocSN</code> 的选取会不一致。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>这里对重传报文的头部加入 <code>Resend</code>，来标记这是否属于重传报文，重传报文的 SN 就不会参与内存调整了。</p>
+</div>
+<div class="atp-step">
+<p><span class="atp-tag">（原文核对）</span>论文举例，<code>SignalSN − 1</code> 的 ACK 丢失后，重传若被当作新提议，<code>ReallocSN</code> 会提前一个序号，其他 Worker 可能已经发过该序号。发送端还用 <code>SN → Version</code> 恢复首发映射，使重传访问原槽位。</p>
+</div>
+</div>
+</aside>
+</div><h2 id="调度策略与评估"><a class="heading-anchor" href="#调度策略与评估" aria-label="Link to this section">#</a>调度策略与评估</h2>
+<h3 id="先提出三点调度原则"><a class="heading-anchor" href="#先提出三点调度原则" aria-label="Link to this section">#</a>先提出三点调度原则</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/12-hybrid-scheduling.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/12-hybrid-scheduling.png" alt="混合工作负载调度的三条原则" loading="lazy"></a><figcaption>混合工作负载调度的三条原则 · p.6</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step">
+<ol><li>在 EDF（最早截止时间优先）上加入交换机内存管理和 JCT 建模，为能按时完成的 deadline-aware（DA）作业分配所需资源。</li><li>即使给足全部资源也无法按时完成的 DA 作业，提前终止并回收内存。</li><li>让 best-effort（BE）作业共享剩余交换机内存，提高利用率。</li></ol><p>模型先根据通信带宽和 RTT 估算在途梯度所需的内存，再用作业的计算和通信时间估算 JCT。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="cross-rack-调度启发式"><a class="heading-anchor" href="#cross-rack-调度启发式" aria-label="Link to this section">#</a>Cross-rack 调度启发式</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/13-cross-rack-heuristic.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/13-cross-rack-heuristic.png" alt="超售网络的跨机架调度启发式" loading="lazy"></a><figcaption>超售网络的跨机架调度启发式 · p.7</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-chain">
+<div class="atp-step atp-step-Reflect">
+<p><span class="atp-tag">（理解批注）</span>这里提出一个启发式策略。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>优先保证 cross-rack 的任务完成，即把 cross-rack 当作 deadline-aware 的任务进行处理。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>理由则是，cross-rack 的任务需要更长的通信时间，占用资源的时间也会更长。</p><div class="atp-arrow" aria-hidden="true">↓</div><p>导致资源的碎片化会更严重。</p>
+</div>
+<div class="atp-step">
+<p><span class="atp-tag">（原文核对）</span>这个策略在检测到跨机架链路拥塞时触发。CRS 用估算的剩余 JCT 设定这些作业的完成时限，并为其预留资源，希望它们完成后尽早释放资源，让后续作业有机会留在单个机架内。</p>
+</div>
+</div>
+</aside>
+</div><h3 id="实验配置-离散模拟与评价指标"><a class="heading-anchor" href="#实验配置-离散模拟与评价指标" aria-label="Link to this section">#</a>实验配置、离散模拟与评价指标</h3>
+<div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/16-metrics.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/16-metrics.png" alt="评价指标" loading="lazy"></a><figcaption>评价指标 · p.7</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-step">
+<p><strong>训练吞吐（images/s）</strong>检验重分配开销，对照无重分配的 ATP 和超时恢复的 ATP-TO。<strong>平均 JCT 与截止时间未达比例（DMR）</strong>检验系统调度，对照 SilentINA。模拟中另比较启用和关闭 CRS。</p>
+</div>
+</aside>
+</div><div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/14-testbed.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/14-testbed.png" alt="实验配置" loading="lazy"></a><figcaption>实验配置 · p.7</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-step">
+<p>5 台服务器，每台 2 张 RTX 2080 Ti，通过双口 40 Gbps ConnectX-5 接入一台 32 × 100 Gbps Tofino。</p>
+</div>
+</aside>
+</div><div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/15-simulator.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/15-simulator.png" alt="离散模拟" loading="lazy"></a><figcaption>离散模拟 · p.7</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-step">
+<p>流级离散时间模拟器采用 fat-tree。默认 16 个机架，每机架 16 台机器、每台 4 张 GPU，超售比 1:1、交换机内存 10 MB。训练速度、迭代与服务器配置取自实机实验。</p>
+</div>
+</aside>
+</div><div class="atp-spread">
+<div class="atp-source">
+<div class="atp-source-card"><figure><a class="article-image-link" href="figures/17-workloads.png" target="_blank" rel="noopener noreferrer" title="查看原图"><img src="figures/17-workloads.png" alt="工作负载" loading="lazy"></a><figcaption>工作负载 · p.7</figcaption></figure>
+</div>
+</div>
+<aside class="atp-notes">
+<div class="atp-step">
+<p>在 ImageNet 上训练 VGG16、VGG19、AlexNet 和 ResNet50。微软训练日志提供时长与 GPU 需求，模型类型随机补齐。另有 GPU 需求服从泊松或正态分布的合成轨迹。</p><p>50% 的作业随机设为 DA，截止时间为 <code>(1 + z)λⱼ</code>，其中 <code>λⱼ</code> 是轨迹中的完成时间，<code>z</code> 在 [0, 2] 均匀抽样。</p>
+</div>
+</aside>
+</div></div><script>
+document.addEventListener('click', function (event) {
+  const button = event.target.closest('.atp-view-btn');
+  if (!button) return;
+  const reading = document.getElementById('atp-reading-root');
+  reading.classList.toggle('atp-wide-mode', button.dataset.view === 'wide');
+  reading.querySelectorAll('.atp-view-btn').forEach(function (item) {
+    const active = item === button;
+    item.classList.toggle('active', active);
+    item.setAttribute('aria-pressed', String(active));
+  });
+});
+</script>
+
+        </article>
+      </div>
+      <nav class="article-end" aria-label="Article navigation">
+        <a href="../../#connectionism">返回全部笔记</a>
+        <a href="#article">回到顶部 ↑</a>
+      </nav>
+    </main>
+
+    <script>
+      (() => {
+        const toc = document.querySelector(".article-toc");
+        const article = document.querySelector(".article-body");
+        if (!toc || !article) return;
+
+        const disclosure = toc.querySelector("details");
+        const summary = disclosure.querySelector("summary");
+        const currentTitle = summary.querySelector(".toc-current-title");
+        const currentPosition = summary.querySelector(".toc-current-position");
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        let compact = null;
+
+        const headings = [...article.querySelectorAll("h2[id], h3[id]")];
+        const links = new Map(
+          [...toc.querySelectorAll("a[href^='#']")].map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
+        );
+        const sectionLinks = [...toc.querySelectorAll("a[data-section-title]")];
+        const parentSections = new Map();
+        let sectionLink = null;
+        for (const heading of headings) {
+          if (heading.tagName === "H2") sectionLink = links.get(heading.id);
+          parentSections.set(heading.id, sectionLink);
+        }
+        let previousLink = null;
+        let previousSection = null;
+
+        function updateCurrentSection() {
+          // Keep the reading position stable while the expanded TOC is being browsed.
+          if (compact && disclosure.open) return;
+          const threshold = compact
+            ? summary.getBoundingClientRect().bottom + 24
+            : parseFloat(getComputedStyle(toc).top) + 24;
+          let current = headings[0];
+
+          for (const heading of headings) {
+            if (heading.getBoundingClientRect().top <= threshold) current = heading;
+            else break;
+          }
+
+          const currentLink = links.get(current?.id);
+          const currentSection = parentSections.get(current?.id);
+          if (currentSection && currentSection !== previousSection) {
+            previousSection = currentSection;
+            currentTitle.textContent = currentSection.dataset.sectionTitle;
+            currentTitle.title = currentSection.textContent;
+            currentPosition.textContent = "· " + (sectionLinks.indexOf(currentSection) + 1) + "/" + sectionLinks.length;
+          }
+          for (const link of links.values()) {
+            const active = link === currentLink;
+            link.classList.toggle("is-current", active);
+            if (active) link.setAttribute("aria-current", "location");
+            else link.removeAttribute("aria-current");
+          }
+
+          if (currentLink && currentLink !== previousLink) {
+            previousLink = currentLink;
+            if (!compact && toc.scrollHeight > toc.clientHeight) {
+              const targetTop = currentLink.offsetTop - (toc.clientHeight - currentLink.offsetHeight) / 2;
+              const maxTop = toc.scrollHeight - toc.clientHeight;
+              toc.scrollTo({
+                top: Math.max(0, Math.min(targetTop, maxTop)),
+                behavior: reducedMotion.matches ? "auto" : "smooth",
+              });
+            }
+          }
+        }
+
+        let frame = null;
+        function scheduleUpdate() {
+          if (frame !== null) return;
+          frame = requestAnimationFrame(() => {
+            frame = null;
+            updateCurrentSection();
+          });
+        }
+
+        function syncTocLayout() {
+          // Respect both the shared breakpoint and article-specific layouts.
+          toc.classList.remove("is-collapsible");
+          const nextCompact = getComputedStyle(toc).position === "static";
+          toc.classList.toggle("is-collapsible", nextCompact);
+          if (compact !== nextCompact) disclosure.open = !nextCompact;
+          compact = nextCompact;
+          summary.tabIndex = compact ? 0 : -1;
+          scheduleUpdate();
+        }
+
+        summary.addEventListener("click", (event) => {
+          if (!compact) event.preventDefault();
+        });
+        toc.addEventListener("click", (event) => {
+          if (compact && event.target.closest("a[href^='#']")) disclosure.open = false;
+        });
+        disclosure.addEventListener("toggle", scheduleUpdate);
+        window.addEventListener("hashchange", scheduleUpdate);
+        window.addEventListener("load", scheduleUpdate);
+        window.addEventListener("scroll", scheduleUpdate, { passive: true });
+        window.addEventListener("resize", syncTocLayout);
+        syncTocLayout();
+      })();
+    </script>
+
+    <footer>
+      <p class="footer-meta">© 2026 Kugai Chen</p>
+      <p class="footer-series">Paper Reading / Chip Design / Inspiration</p>
+    </footer>
+  </body>
+</html>
